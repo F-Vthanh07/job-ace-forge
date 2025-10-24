@@ -1,138 +1,251 @@
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Video, Mic, MicOff, VideoOff, StopCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 const InterviewSession = () => {
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
-  const [currentQuestion, setCurrentQuestion] = useState(1);
-  const totalQuestions = 5;
+  const [timeRemaining, setTimeRemaining] = useState(60); // 60 seconds
+  const [isSessionActive, setIsSessionActive] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const navigate = useNavigate();
+  const { toast } = useToast();
 
-  const questions = [
-    "Tell me about yourself and your professional background.",
-    "Describe a challenging project you worked on and how you overcame obstacles.",
-    "What are your greatest strengths and how do they apply to this role?",
-    "Tell me about a time you had to work with a difficult team member.",
-    "Where do you see yourself in 5 years?",
-  ];
+  // Initialize camera
+  useEffect(() => {
+    const initCamera = async () => {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ 
+          video: true, 
+          audio: true 
+        });
+        streamRef.current = stream;
+        if (videoRef.current) {
+          videoRef.current.srcObject = stream;
+        }
+      } catch (error) {
+        console.error("Error accessing camera:", error);
+        toast({
+          title: "Camera Access Denied",
+          description: "Please allow camera access to continue with the interview.",
+          variant: "destructive",
+        });
+      }
+    };
+
+    initCamera();
+
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [toast]);
+
+  // Countdown timer
+  useEffect(() => {
+    if (!isSessionActive) return;
+
+    const timer = setInterval(() => {
+      setTimeRemaining((prev) => {
+        if (prev <= 1) {
+          setIsSessionActive(false);
+          clearInterval(timer);
+          // End session and redirect
+          if (streamRef.current) {
+            streamRef.current.getTracks().forEach(track => track.stop());
+          }
+          toast({
+            title: "Interview Completed",
+            description: "Redirecting to your results...",
+          });
+          setTimeout(() => {
+            navigate("/interview-report/1");
+          }, 1500);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isSessionActive, navigate, toast]);
+
+  // Toggle video
+  const toggleVideo = () => {
+    if (streamRef.current) {
+      const videoTrack = streamRef.current.getVideoTracks()[0];
+      if (videoTrack) {
+        videoTrack.enabled = !videoTrack.enabled;
+        setIsVideoOn(videoTrack.enabled);
+      }
+    }
+  };
+
+  // Toggle mic
+  const toggleMic = () => {
+    if (streamRef.current) {
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      if (audioTrack) {
+        audioTrack.enabled = !audioTrack.enabled;
+        setIsMicOn(audioTrack.enabled);
+      }
+    }
+  };
+
+  const handleEndSession = () => {
+    setIsSessionActive(false);
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+    }
+    navigate("/interview-report/1");
+  };
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-6xl mx-auto">
-          {/* Progress */}
-          <div className="mb-6">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium">Question {currentQuestion} of {totalQuestions}</span>
-              <span className="text-sm text-muted-foreground">00:45 remaining</span>
+      {/* Header with Timer */}
+      <div className="bg-card border-b">
+        <div className="container mx-auto px-4 py-3">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-4">
+              <div className="gradient-primary p-2 rounded-lg">
+                <Video className="h-5 w-5 text-white" />
+              </div>
+              <div>
+                <h2 className="font-semibold">AI Mock Interview Session</h2>
+                <p className="text-sm text-muted-foreground">Practice makes perfect</p>
+              </div>
             </div>
-            <div className="h-2 bg-secondary rounded-full overflow-hidden">
-              <div 
-                className="h-full gradient-primary transition-all duration-300"
-                style={{ width: `${(currentQuestion / totalQuestions) * 100}%` }}
-              />
+            <div className="flex items-center gap-6">
+              <div className="text-center">
+                <div className={`text-3xl font-bold ${timeRemaining <= 10 ? 'text-destructive' : 'text-primary'}`}>
+                  {formatTime(timeRemaining)}
+                </div>
+                <p className="text-xs text-muted-foreground">Time Remaining</p>
+              </div>
+              <Button 
+                variant="destructive" 
+                size="sm"
+                onClick={handleEndSession}
+              >
+                <StopCircle className="h-4 w-4 mr-2" />
+                End Session
+              </Button>
             </div>
           </div>
+        </div>
+      </div>
 
-          <div className="grid lg:grid-cols-2 gap-6 mb-6">
-            {/* Video Feed */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">Your Video</h3>
-              <div className="aspect-video bg-secondary rounded-lg flex items-center justify-center mb-4">
-                {isVideoOn ? (
-                  <div className="text-center">
-                    <Video className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Camera Active</p>
-                  </div>
-                ) : (
-                  <div className="text-center">
-                    <VideoOff className="h-12 w-12 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground">Camera Off</p>
+      <div className="container mx-auto px-4 py-4">
+        <div className="max-w-7xl mx-auto">
+          {/* Main Video Grid */}
+          <div className="grid lg:grid-cols-4 gap-4 mb-4">
+            {/* Your Video - Large */}
+            <Card className="lg:col-span-3 overflow-hidden bg-black">
+              <div className="relative aspect-video bg-black">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                  style={{ display: isVideoOn ? 'block' : 'none' }}
+                />
+                {!isVideoOn && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-secondary">
+                    <div className="text-center">
+                      <div className="w-24 h-24 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-4">
+                        <VideoOff className="h-12 w-12 text-muted-foreground" />
+                      </div>
+                      <p className="text-lg text-muted-foreground">Camera Off</p>
+                    </div>
                   </div>
                 )}
-              </div>
-              
-              <div className="flex justify-center gap-3">
-                <Button
-                  variant={isMicOn ? "default" : "destructive"}
-                  size="lg"
-                  onClick={() => setIsMicOn(!isMicOn)}
-                  className={isMicOn ? "bg-primary" : ""}
-                >
-                  {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-                </Button>
-                <Button
-                  variant={isVideoOn ? "default" : "destructive"}
-                  size="lg"
-                  onClick={() => setIsVideoOn(!isVideoOn)}
-                  className={isVideoOn ? "bg-primary" : ""}
-                >
-                  {isVideoOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-                </Button>
-              </div>
-            </Card>
+                
+                {/* Overlay controls */}
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-3">
+                  <Button
+                    variant={isMicOn ? "secondary" : "destructive"}
+                    size="icon"
+                    className="rounded-full h-12 w-12"
+                    onClick={toggleMic}
+                  >
+                    {isMicOn ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
+                  </Button>
+                  <Button
+                    variant={isVideoOn ? "secondary" : "destructive"}
+                    size="icon"
+                    className="rounded-full h-12 w-12"
+                    onClick={toggleVideo}
+                  >
+                    {isVideoOn ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+                  </Button>
+                </div>
 
-            {/* AI Interviewer */}
-            <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">AI Interviewer</h3>
-              <div className="aspect-video bg-gradient-to-br from-primary/20 to-accent/20 rounded-lg flex items-center justify-center mb-4">
-                <div className="text-center">
-                  <div className="gradient-primary p-6 rounded-full inline-flex mb-4 shadow-glow animate-pulse-slow">
-                    <div className="h-12 w-12" />
-                  </div>
-                  <p className="text-sm font-medium">AI Interviewer is listening...</p>
+                {/* Name tag */}
+                <div className="absolute bottom-4 left-4 bg-black/70 px-3 py-1 rounded-md">
+                  <p className="text-sm text-white font-medium">You</p>
                 </div>
               </div>
-              <div className="flex justify-center">
-                <Button variant="outline" size="sm">
-                  Repeat Question
-                </Button>
+            </Card>
+
+            {/* AI Interviewer - Small */}
+            <Card className="overflow-hidden">
+              <div className="relative aspect-video bg-gradient-to-br from-primary/30 to-accent/30">
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center">
+                    <div className="gradient-primary p-8 rounded-full inline-flex mb-3 shadow-glow animate-pulse-slow">
+                      <div className="h-8 w-8" />
+                    </div>
+                    <p className="text-sm font-medium px-2">AI Interviewer</p>
+                    <p className="text-xs text-muted-foreground px-2">Listening...</p>
+                  </div>
+                </div>
+                <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-0.5 rounded">
+                  <p className="text-xs text-white">AI Assistant</p>
+                </div>
               </div>
             </Card>
           </div>
 
-          {/* Current Question */}
-          <Card className="p-8 mb-6">
-            <div className="max-w-3xl mx-auto text-center">
-              <h2 className="text-2xl font-bold mb-4">Current Question:</h2>
-              <p className="text-xl text-muted-foreground mb-6">
-                {questions[currentQuestion - 1]}
-              </p>
-              <div className="flex justify-center gap-4">
-                {currentQuestion < totalQuestions ? (
-                  <Button 
-                    className="gradient-primary shadow-glow" 
-                    size="lg"
-                    onClick={() => setCurrentQuestion(currentQuestion + 1)}
-                  >
-                    Next Question
-                  </Button>
-                ) : (
-                  <Button className="gradient-primary shadow-glow" size="lg" asChild>
-                    <Link to="/interview-report/1">
-                      <StopCircle className="h-5 w-5 mr-2" />
-                      Finish Interview
-                    </Link>
-                  </Button>
-                )}
+          {/* Live Transcript / Status */}
+          <Card className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <div className="w-3 h-3 rounded-full bg-destructive animate-pulse" />
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-2">🎙️ Live Interview in Progress</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  The AI interviewer is actively listening and analyzing your responses. Speak naturally and confidently.
+                  Your body language, tone, and content are being evaluated in real-time.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <div className="px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                    Voice Analysis Active
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-success/10 text-success text-xs font-medium">
+                    Camera Recording
+                  </div>
+                  <div className="px-3 py-1 rounded-full bg-accent/10 text-accent text-xs font-medium">
+                    AI Processing
+                  </div>
+                </div>
               </div>
             </div>
-          </Card>
-
-          {/* Tips */}
-          <Card className="p-6">
-            <h3 className="font-semibold mb-3">💡 Interview Tips</h3>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• Speak clearly and maintain good posture</li>
-              <li>• Use the STAR method for behavioral questions</li>
-              <li>• Take a moment to think before answering</li>
-              <li>• Make eye contact with the camera</li>
-            </ul>
           </Card>
         </div>
       </div>

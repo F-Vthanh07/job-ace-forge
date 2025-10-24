@@ -115,6 +115,23 @@ const InterviewSetup = () => {
                   </div>
                 </RadioGroup>
               </div>
+
+              {/* Interviewer Gender */}
+              <div>
+                <Label className="text-lg font-semibold mb-3 block">Interviewer Gender</Label>
+                <RadioGroup defaultValue="male">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="flex items-center space-x-3 p-4 rounded-lg border hover:border-primary transition-colors cursor-pointer">
+                      <RadioGroupItem value="male" id="male" />
+                      <Label htmlFor="male" className="cursor-pointer font-medium">Male Interviewer</Label>
+                    </div>
+                    <div className="flex items-center space-x-3 p-4 rounded-lg border hover:border-primary transition-colors cursor-pointer">
+                      <RadioGroupItem value="female" id="female" />
+                      <Label htmlFor="female" className="cursor-pointer font-medium">Female Interviewer</Label>
+                    </div>
+                  </div>
+                </RadioGroup>
+              </div>
             </div>
           </Card>
 
