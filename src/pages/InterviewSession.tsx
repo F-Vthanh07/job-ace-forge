@@ -3,10 +3,14 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { Video, Mic, MicOff, VideoOff, StopCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import interviewerMale from "@/assets/interviewer-male.png";
+import interviewerFemale from "@/assets/interviewer-female.png";
 
 const InterviewSession = () => {
+  const [searchParams] = useSearchParams();
+  const gender = searchParams.get("gender") || "male";
   const [isMicOn, setIsMicOn] = useState(true);
   const [isVideoOn, setIsVideoOn] = useState(true);
   const [timeRemaining, setTimeRemaining] = useState(60); // 60 seconds
@@ -15,6 +19,9 @@ const InterviewSession = () => {
   const streamRef = useRef<MediaStream | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const interviewerImage = gender === "female" ? interviewerFemale : interviewerMale;
+  const interviewerName = gender === "female" ? "Female Interviewer" : "Male Interviewer";
 
   // Initialize camera
   useEffect(() => {
@@ -152,9 +159,9 @@ const InterviewSession = () => {
       <div className="container mx-auto px-4 py-4">
         <div className="max-w-7xl mx-auto">
           {/* Main Video Grid */}
-          <div className="grid lg:grid-cols-4 gap-4 mb-4">
-            {/* Your Video - Large */}
-            <Card className="lg:col-span-3 overflow-hidden bg-black">
+          <div className="grid lg:grid-cols-2 gap-4 mb-4">
+            {/* Your Video */}
+            <Card className="overflow-hidden bg-black">
               <div className="relative aspect-video bg-black">
                 <video
                   ref={videoRef}
@@ -202,20 +209,26 @@ const InterviewSession = () => {
               </div>
             </Card>
 
-            {/* AI Interviewer - Small */}
-            <Card className="overflow-hidden">
-              <div className="relative aspect-video bg-gradient-to-br from-primary/30 to-accent/30">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="gradient-primary p-8 rounded-full inline-flex mb-3 shadow-glow animate-pulse-slow">
-                      <div className="h-8 w-8" />
-                    </div>
-                    <p className="text-sm font-medium px-2">AI Interviewer</p>
-                    <p className="text-xs text-muted-foreground px-2">Listening...</p>
+            {/* AI Interviewer */}
+            <Card className="overflow-hidden bg-black">
+              <div className="relative aspect-video bg-gradient-to-br from-primary/20 to-accent/20">
+                <img 
+                  src={interviewerImage} 
+                  alt={interviewerName}
+                  className="w-full h-full object-cover"
+                />
+                
+                {/* Listening indicator overlay */}
+                <div className="absolute top-4 right-4">
+                  <div className="flex items-center gap-2 bg-black/70 px-3 py-1.5 rounded-full">
+                    <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                    <span className="text-xs text-white font-medium">Listening</span>
                   </div>
                 </div>
-                <div className="absolute bottom-2 left-2 bg-black/70 px-2 py-0.5 rounded">
-                  <p className="text-xs text-white">AI Assistant</p>
+
+                {/* Name tag */}
+                <div className="absolute bottom-4 left-4 bg-black/70 px-3 py-1 rounded-md">
+                  <p className="text-sm text-white font-medium">{interviewerName}</p>
                 </div>
               </div>
             </Card>

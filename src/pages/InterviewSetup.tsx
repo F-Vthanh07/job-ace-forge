@@ -5,9 +5,17 @@ import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Video, Play } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const InterviewSetup = () => {
+  const navigate = useNavigate();
+  const [gender, setGender] = useState("male");
+
+  const handleStartInterview = () => {
+    navigate(`/interview-session?gender=${gender}`);
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -119,7 +127,7 @@ const InterviewSetup = () => {
               {/* Interviewer Gender */}
               <div>
                 <Label className="text-lg font-semibold mb-3 block">Interviewer Gender</Label>
-                <RadioGroup defaultValue="male">
+                <RadioGroup defaultValue="male" onValueChange={setGender}>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center space-x-3 p-4 rounded-lg border hover:border-primary transition-colors cursor-pointer">
                       <RadioGroupItem value="male" id="male" />
@@ -135,11 +143,13 @@ const InterviewSetup = () => {
             </div>
           </Card>
 
-          <Button className="w-full gradient-primary shadow-glow" size="lg" asChild>
-            <Link to="/interview-session">
-              <Play className="h-5 w-5 mr-2" />
-              Start Interview
-            </Link>
+          <Button 
+            className="w-full gradient-primary shadow-glow" 
+            size="lg"
+            onClick={handleStartInterview}
+          >
+            <Play className="h-5 w-5 mr-2" />
+            Start Interview
           </Button>
         </div>
       </div>
