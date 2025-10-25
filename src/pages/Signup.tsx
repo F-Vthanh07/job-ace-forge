@@ -14,7 +14,7 @@ const Signup = () => {
             <div className="gradient-primary p-2 rounded-lg shadow-glow">
               <Sparkles className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="font-bold text-2xl text-gradient">CareerAI</span>
+            <span className="font-bold text-2xl text-gradient">AI JOBMATCH</span>
           </div>
           <h1 className="text-3xl font-bold mb-2">Create Account</h1>
           <p className="text-muted-foreground">Start your career transformation today</p>

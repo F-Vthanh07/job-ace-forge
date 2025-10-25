@@ -7,13 +7,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Video, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const InterviewSetup = () => {
   const navigate = useNavigate();
   const [gender, setGender] = useState("male");
+  const [difficulty, setDifficulty] = useState("medium");
+  const { t } = useLanguage();
 
   const handleStartInterview = () => {
-    navigate(`/interview-session?gender=${gender}`);
+    navigate(`/interview-session?gender=${gender}&difficulty=${difficulty}`);
   };
 
   return (
@@ -27,7 +30,7 @@ const InterviewSetup = () => {
               <Video className="h-4 w-4 text-primary" />
               <span className="text-sm font-medium text-primary">AI-Powered Mock Interview</span>
             </div>
-            <h1 className="text-4xl font-bold mb-3">Setup Your Interview</h1>
+            <h1 className="text-4xl font-bold mb-3">{t("interview.setupTitle")}</h1>
             <p className="text-muted-foreground">Configure your practice session for the best experience</p>
           </div>
 
@@ -105,20 +108,20 @@ const InterviewSetup = () => {
 
               {/* Difficulty Level */}
               <div>
-                <Label className="text-lg font-semibold mb-3 block">Difficulty Level</Label>
-                <RadioGroup defaultValue="medium">
+                <Label className="text-lg font-semibold mb-3 block">{t("interview.selectDifficulty")}</Label>
+                <RadioGroup defaultValue="medium" onValueChange={setDifficulty}>
                   <div className="grid grid-cols-3 gap-3">
                     <div className="flex items-center space-x-2 p-4 rounded-lg border hover:border-success transition-colors cursor-pointer">
                       <RadioGroupItem value="easy" id="easy" />
-                      <Label htmlFor="easy" className="cursor-pointer font-medium">Easy</Label>
+                      <Label htmlFor="easy" className="cursor-pointer font-medium">{t("interview.easy")}</Label>
                     </div>
                     <div className="flex items-center space-x-2 p-4 rounded-lg border hover:border-warning transition-colors cursor-pointer">
                       <RadioGroupItem value="medium" id="medium" />
-                      <Label htmlFor="medium" className="cursor-pointer font-medium">Medium</Label>
+                      <Label htmlFor="medium" className="cursor-pointer font-medium">{t("interview.medium")}</Label>
                     </div>
                     <div className="flex items-center space-x-2 p-4 rounded-lg border hover:border-destructive transition-colors cursor-pointer">
                       <RadioGroupItem value="hard" id="hard" />
-                      <Label htmlFor="hard" className="cursor-pointer font-medium">Hard</Label>
+                      <Label htmlFor="hard" className="cursor-pointer font-medium">{t("interview.hard")}</Label>
                     </div>
                   </div>
                 </RadioGroup>
@@ -126,16 +129,16 @@ const InterviewSetup = () => {
 
               {/* Interviewer Gender */}
               <div>
-                <Label className="text-lg font-semibold mb-3 block">Interviewer Gender</Label>
+                <Label className="text-lg font-semibold mb-3 block">{t("interview.selectGender")}</Label>
                 <RadioGroup defaultValue="male" onValueChange={setGender}>
                   <div className="grid grid-cols-2 gap-3">
                     <div className="flex items-center space-x-3 p-4 rounded-lg border hover:border-primary transition-colors cursor-pointer">
                       <RadioGroupItem value="male" id="male" />
-                      <Label htmlFor="male" className="cursor-pointer font-medium">Male Interviewer</Label>
+                      <Label htmlFor="male" className="cursor-pointer font-medium">{t("interview.male")}</Label>
                     </div>
                     <div className="flex items-center space-x-3 p-4 rounded-lg border hover:border-primary transition-colors cursor-pointer">
                       <RadioGroupItem value="female" id="female" />
-                      <Label htmlFor="female" className="cursor-pointer font-medium">Female Interviewer</Label>
+                      <Label htmlFor="female" className="cursor-pointer font-medium">{t("interview.female")}</Label>
                     </div>
                   </div>
                 </RadioGroup>
@@ -149,7 +152,7 @@ const InterviewSetup = () => {
             onClick={handleStartInterview}
           >
             <Play className="h-5 w-5 mr-2" />
-            Start Interview
+            {t("interview.startInterview")}
           </Button>
         </div>
       </div>

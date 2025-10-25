@@ -1,27 +1,37 @@
 import { Link, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, User, Menu, X } from "lucide-react";
+import { Sparkles, User, Menu, X, Moon, Sun, Globe } from "lucide-react";
 import { useState } from "react";
+import { useTheme } from "@/contexts/ThemeContext";
+import { useLanguage } from "@/contexts/LanguageContext";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export const Navbar = () => {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { theme, toggleTheme } = useTheme();
+  const { language, setLanguage, t } = useLanguage();
   
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup";
+  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/";
   
   if (isAuthPage) return null;
 
   const candidateLinks = [
-    { name: "Dashboard", path: "/dashboard" },
-    { name: "CV Builder", path: "/cv-builder" },
-    { name: "Mock Interview", path: "/interview-setup" },
-    { name: "Jobs", path: "/jobs" },
+    { name: t("nav.jobs"), path: "/jobs" },
+    { name: t("nav.dashboard"), path: "/dashboard" },
+    { name: t("nav.cvBuilder"), path: "/cv-builder" },
+    { name: t("nav.mockInterview"), path: "/interview-setup" },
   ];
 
   const recruiterLinks = [
-    { name: "Dashboard", path: "/recruiter-dashboard" },
-    { name: "Post Job", path: "/post-job" },
-    { name: "Candidates", path: "/candidates" },
+    { name: t("nav.dashboard"), path: "/recruiter-dashboard" },
+    { name: t("nav.postJob"), path: "/post-job" },
+    { name: t("nav.candidates"), path: "/candidates" },
   ];
 
   const isRecruiterPath = location.pathname.includes("recruiter") || 
@@ -38,7 +48,7 @@ export const Navbar = () => {
             <div className="gradient-primary p-2 rounded-lg shadow-glow">
               <Sparkles className="h-5 w-5 text-primary-foreground" />
             </div>
-            <span className="font-bold text-xl text-gradient">CareerAI</span>
+            <span className="font-bold text-xl text-gradient">{t("common.appName")}</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -59,14 +69,38 @@ export const Navbar = () => {
           </div>
 
           <div className="hidden md:flex items-center gap-3">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleTheme}
+            >
+              {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            </Button>
+            
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon">
+                  <Globe className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setLanguage("vi")}>
+                  Tiếng Việt
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("en")}>
+                  English
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
             <Button variant="ghost" size="sm" asChild>
               <Link to="/profile">
                 <User className="h-4 w-4 mr-2" />
-                Profile
+                {t("common.profile")}
               </Link>
             </Button>
             <Button size="sm" className="gradient-primary shadow-glow" asChild>
-              <Link to="/premium">Upgrade to Premium</Link>
+              <Link to="/premium">{t("common.upgrade")}</Link>
             </Button>
           </div>
 

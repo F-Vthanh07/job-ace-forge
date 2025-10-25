@@ -5,8 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { FileText, Video, Briefcase, TrendingUp, Target, Award, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Dashboard = () => {
+  const { t } = useLanguage();
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -14,33 +17,33 @@ const Dashboard = () => {
       <div className="container mx-auto px-4 py-8">
         {/* Welcome Section */}
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Welcome back, John! 👋</h1>
+          <h1 className="text-4xl font-bold mb-2">{t("dashboard.welcome")}, John! 👋</h1>
           <p className="text-muted-foreground">Let's continue building your career</p>
         </div>
 
         {/* Stats Grid */}
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <StatCard
-            title="CV Score"
+            title={t("dashboard.cvScore")}
             value="85"
             subtitle="Excellent"
             icon={FileText}
             trend={{ value: 5, isPositive: true }}
           />
           <StatCard
-            title="Interviews Done"
+            title={t("dashboard.interviews")}
             value="12"
             subtitle="This month"
             icon={Video}
           />
           <StatCard
-            title="Job Matches"
+            title={t("dashboard.jobMatches")}
             value="23"
             subtitle="New opportunities"
             icon={Briefcase}
           />
           <StatCard
-            title="Skill Level"
+            title={t("dashboard.skillLevel")}
             value="7"
             subtitle="Advanced"
             icon={TrendingUp}
@@ -50,21 +53,21 @@ const Dashboard = () => {
         {/* Progress Cards */}
         <div className="grid md:grid-cols-3 gap-6 mb-8">
           <ProgressCard
-            title="Interview Skills"
+            title={t("dashboard.interviewSkills")}
             value={8}
             maxValue={10}
             icon={Target}
             color="primary"
           />
           <ProgressCard
-            title="CV Completeness"
+            title={t("dashboard.cvCompleteness")}
             value={85}
             maxValue={100}
             icon={Award}
             color="success"
           />
           <ProgressCard
-            title="Weekly Goal"
+            title={t("dashboard.weeklyGoal")}
             value={3}
             maxValue={5}
             icon={Zap}
@@ -75,22 +78,22 @@ const Dashboard = () => {
         {/* Quick Actions */}
         <div className="grid md:grid-cols-3 gap-6">
           <ActionCard
-            title="Build CV"
-            description="Create or update your CV with AI assistance"
+            title={t("dashboard.buildCV")}
+            description={t("dashboard.buildCVDesc")}
             icon={FileText}
             linkTo="/cv-builder"
             gradient="primary"
           />
           <ActionCard
-            title="Practice Interview"
-            description="Prepare with AI-powered mock interviews"
+            title={t("dashboard.practiceInterview")}
+            description={t("dashboard.practiceInterviewDesc")}
             icon={Video}
             linkTo="/interview-setup"
             gradient="accent"
           />
           <ActionCard
-            title="Find Jobs"
-            description="Discover jobs that match your profile"
+            title={t("dashboard.findJobs")}
+            description={t("dashboard.findJobsDesc")}
             icon={Briefcase}
             linkTo="/jobs"
             gradient="success"
@@ -114,6 +117,7 @@ const ActionCard = ({
   linkTo: string;
   gradient: "primary" | "accent" | "success";
 }) => {
+  const { t } = useLanguage();
   const gradientClasses = {
     primary: "gradient-primary",
     accent: "gradient-accent",

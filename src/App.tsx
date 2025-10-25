@@ -3,6 +3,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { ThemeProvider } from "@/contexts/ThemeContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import Welcome from "./pages/Welcome";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -34,47 +36,51 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Public Routes */}
-          <Route path="/" element={<Welcome />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/onboarding" element={<Onboarding />} />
-          
-          {/* Candidate Routes */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/cv-manager" element={<CVManager />} />
-          <Route path="/cv-builder" element={<CVBuilder />} />
-          <Route path="/cv-feedback/:id" element={<CVFeedback />} />
-          <Route path="/interview-setup" element={<InterviewSetup />} />
-          <Route path="/interview-session" element={<InterviewSession />} />
-          <Route path="/interview-report/:id" element={<InterviewReport />} />
-          <Route path="/skill-progress" element={<SkillProgress />} />
-          <Route path="/resources" element={<Resources />} />
-          <Route path="/jobs" element={<Jobs />} />
-          <Route path="/job-detail/:id" element={<JobDetail />} />
-          <Route path="/premium" element={<Premium />} />
-          <Route path="/payment" element={<Payment />} />
-          
-          {/* Recruiter Routes */}
-          <Route path="/recruiter-login" element={<RecruiterLogin />} />
-          <Route path="/enterprise-signup" element={<EnterpriseSignup />} />
-          <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
-          <Route path="/post-job" element={<PostJob />} />
-          <Route path="/candidates" element={<Candidates />} />
-          <Route path="/candidate-report/:id" element={<CandidateReport />} />
-          <Route path="/enterprise-payment" element={<EnterprisePayment />} />
-          
-          {/* 404 */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
-    </TooltipProvider>
+    <ThemeProvider>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Welcome />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              
+              {/* Candidate Routes */}
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/cv-manager" element={<CVManager />} />
+              <Route path="/cv-builder" element={<CVBuilder />} />
+              <Route path="/cv-feedback/:id" element={<CVFeedback />} />
+              <Route path="/interview-setup" element={<InterviewSetup />} />
+              <Route path="/interview-session" element={<InterviewSession />} />
+              <Route path="/interview-report/:id" element={<InterviewReport />} />
+              <Route path="/skill-progress" element={<SkillProgress />} />
+              <Route path="/resources" element={<Resources />} />
+              <Route path="/jobs" element={<Jobs />} />
+              <Route path="/job-detail/:id" element={<JobDetail />} />
+              <Route path="/premium" element={<Premium />} />
+              <Route path="/payment" element={<Payment />} />
+              
+              {/* Recruiter Routes */}
+              <Route path="/recruiter-login" element={<RecruiterLogin />} />
+              <Route path="/enterprise-signup" element={<EnterpriseSignup />} />
+              <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
+              <Route path="/post-job" element={<PostJob />} />
+              <Route path="/candidates" element={<Candidates />} />
+              <Route path="/candidate-report/:id" element={<CandidateReport />} />
+              <Route path="/enterprise-payment" element={<EnterprisePayment />} />
+              
+              {/* 404 */}
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </LanguageProvider>
+    </ThemeProvider>
   </QueryClientProvider>
 );
 

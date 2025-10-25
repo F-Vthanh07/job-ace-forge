@@ -14,7 +14,7 @@ const Login = () => {
             <div className="gradient-primary p-2 rounded-lg shadow-glow">
               <Sparkles className="h-6 w-6 text-primary-foreground" />
             </div>
-            <span className="font-bold text-2xl text-gradient">CareerAI</span>
+            <span className="font-bold text-2xl text-gradient">AI JOBMATCH</span>
           </div>
           <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
           <p className="text-muted-foreground">Sign in to continue your journey</p>
@@ -32,7 +32,7 @@ const Login = () => {
           </div>
 
           <Button className="w-full gradient-primary shadow-glow" size="lg" asChild>
-            <Link to="/dashboard">Sign In</Link>
+            <Link to="/jobs">Sign In</Link>
           </Button>
 
           <div className="text-center text-sm">
