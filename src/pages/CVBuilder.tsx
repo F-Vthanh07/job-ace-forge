@@ -4,26 +4,85 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, Eye } from "lucide-react";
+import { Sparkles, Save, Eye, Download, FileText } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { CVPreview } from "@/components/CVPreview";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useToast } from "@/hooks/use-toast";
+import html2pdf from "html2pdf.js";
+import simpleTemplate from "@/assets/cv-template-simple.png";
+import modernTemplate from "@/assets/cv-template-modern.png";
+import professionalTemplate from "@/assets/cv-template-professional.png";
+import creativeTemplate from "@/assets/cv-template-creative.png";
 
 const CVBuilder = () => {
   const [aiSuggestion, setAiSuggestion] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState("simple");
+  const [showPreview, setShowPreview] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const { t } = useLanguage();
+  const { toast } = useToast();
+
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phone: "",
+    address: "",
+    title: "",
+    summary: "",
+    company: "",
+    position: "",
+    duration: "",
+    description: "",
+    education: "",
+    skills: "",
+  });
 
   const generateSuggestion = () => {
     setAiSuggestion("Consider highlighting your leadership experience in managing cross-functional teams. This adds value to your profile for senior positions.");
   };
 
+  const handleInputChange = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAIGenerate = () => {
+    setIsGenerating(true);
+    setTimeout(() => {
+      setIsGenerating(false);
+      toast({
+        title: "CV Generated",
+        description: "Your CV has been generated with AI assistance!",
+      });
+    }, 2000);
+  };
+
+  const handleDownloadPDF = () => {
+    const element = document.getElementById("cv-preview");
+    if (!element) return;
+
+    const opt = {
+      margin: 0,
+      filename: `${formData.fullName || "CV"}.pdf`,
+      image: { type: "jpeg" as const, quality: 0.98 },
+      html2canvas: { scale: 2 },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
+    };
+
+    html2pdf().set(opt).from(element).save();
+    toast({
+      title: "PDF Downloaded",
+      description: "Your CV has been downloaded successfully!",
+    });
+  };
+
   const templates = [
-    { id: "simple", name: t("cvBuilder.templateSimple"), color: "border-primary" },
-    { id: "modern", name: t("cvBuilder.templateModern"), color: "border-accent" },
-    { id: "professional", name: t("cvBuilder.templateProfessional"), color: "border-success" },
-    { id: "creative", name: t("cvBuilder.templateCreative"), color: "border-warning" },
+    { id: "simple", name: t("cvBuilder.templateSimple"), color: "border-primary", preview: simpleTemplate },
+    { id: "modern", name: t("cvBuilder.templateModern"), color: "border-accent", preview: modernTemplate },
+    { id: "professional", name: t("cvBuilder.templateProfessional"), color: "border-success", preview: professionalTemplate },
+    { id: "creative", name: t("cvBuilder.templateCreative"), color: "border-warning", preview: creativeTemplate },
   ];
 
   return (
@@ -38,15 +97,21 @@ const CVBuilder = () => {
               <p className="text-muted-foreground">{t("cvBuilder.subtitle")}</p>
             </div>
             <div className="flex gap-3">
-              <Button variant="outline" asChild>
-                <Link to="/cv-manager">
-                  <Eye className="h-4 w-4 mr-2" />
-                  {t("cvBuilder.preview")}
-                </Link>
+              <Button 
+                variant="outline" 
+                onClick={() => setShowPreview(true)}
+                disabled={!formData.fullName}
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                {t("cvBuilder.previewCV")}
               </Button>
-              <Button className="gradient-primary shadow-glow">
-                <Save className="h-4 w-4 mr-2" />
-                {t("cvBuilder.saveCV")}
+              <Button 
+                className="gradient-primary shadow-glow"
+                onClick={handleDownloadPDF}
+                disabled={!formData.fullName}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {t("cvBuilder.downloadPDF")}
               </Button>
             </div>
           </div>
@@ -65,9 +130,13 @@ const CVBuilder = () => {
                     />
                     <Label
                       htmlFor={template.id}
-                      className={`flex flex-col items-center justify-center p-6 border-2 rounded-lg cursor-pointer transition-all hover:border-primary peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 ${template.color}`}
+                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 ${template.color}`}
                     >
-                      <div className="w-16 h-20 mb-2 bg-muted rounded border-2 border-border"></div>
+                      <img 
+                        src={template.preview} 
+                        alt={template.name}
+                        className="w-full h-32 object-cover rounded mb-2 border border-border"
+                      />
                       <span className="text-sm font-medium">{template.name}</span>
                     </Label>
                   </div>
@@ -85,30 +154,68 @@ const CVBuilder = () => {
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="fullName">{t("cvBuilder.fullName")}</Label>
-                      <Input id="fullName" placeholder="John Doe" className="mt-1" />
+                      <Input 
+                        id="fullName" 
+                        placeholder="John Doe" 
+                        className="mt-1"
+                        value={formData.fullName}
+                        onChange={(e) => handleInputChange("fullName", e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label htmlFor="email">{t("cvBuilder.email")}</Label>
-                      <Input id="email" type="email" placeholder="john@example.com" className="mt-1" />
+                      <Input 
+                        id="email" 
+                        type="email" 
+                        placeholder="john@example.com" 
+                        className="mt-1"
+                        value={formData.email}
+                        onChange={(e) => handleInputChange("email", e.target.value)}
+                      />
                     </div>
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="phone">{t("cvBuilder.phone")}</Label>
-                      <Input id="phone" placeholder="+84 123 456 789" className="mt-1" />
+                      <Input 
+                        id="phone" 
+                        placeholder="+84 123 456 789" 
+                        className="mt-1"
+                        value={formData.phone}
+                        onChange={(e) => handleInputChange("phone", e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label htmlFor="address">{t("cvBuilder.address")}</Label>
-                      <Input id="address" placeholder="Ho Chi Minh City" className="mt-1" />
+                      <Input 
+                        id="address" 
+                        placeholder="Ho Chi Minh City" 
+                        className="mt-1"
+                        value={formData.address}
+                        onChange={(e) => handleInputChange("address", e.target.value)}
+                      />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="title">{t("cvBuilder.professionalTitle")}</Label>
-                    <Input id="title" placeholder="Senior Frontend Developer" className="mt-1" />
+                    <Input 
+                      id="title" 
+                      placeholder="Senior Frontend Developer" 
+                      className="mt-1"
+                      value={formData.title}
+                      onChange={(e) => handleInputChange("title", e.target.value)}
+                    />
                   </div>
                   <div>
                     <Label htmlFor="summary">{t("cvBuilder.summary")}</Label>
-                    <Textarea id="summary" rows={4} placeholder={t("cvBuilder.summary")} className="mt-1" />
+                    <Textarea 
+                      id="summary" 
+                      rows={4} 
+                      placeholder={t("cvBuilder.summary")} 
+                      className="mt-1"
+                      value={formData.summary}
+                      onChange={(e) => handleInputChange("summary", e.target.value)}
+                    />
                   </div>
                 </div>
               </Card>
@@ -118,21 +225,46 @@ const CVBuilder = () => {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="company">{t("cvBuilder.company")}</Label>
-                    <Input id="company" placeholder="Tech Company Inc." className="mt-1" />
+                    <Input 
+                      id="company" 
+                      placeholder="Tech Company Inc." 
+                      className="mt-1"
+                      value={formData.company}
+                      onChange={(e) => handleInputChange("company", e.target.value)}
+                    />
                   </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="position">{t("cvBuilder.position")}</Label>
-                      <Input id="position" placeholder="Senior Developer" className="mt-1" />
+                      <Input 
+                        id="position" 
+                        placeholder="Senior Developer" 
+                        className="mt-1"
+                        value={formData.position}
+                        onChange={(e) => handleInputChange("position", e.target.value)}
+                      />
                     </div>
                     <div>
                       <Label htmlFor="duration">{t("cvBuilder.duration")}</Label>
-                      <Input id="duration" placeholder="2020 - Present" className="mt-1" />
+                      <Input 
+                        id="duration" 
+                        placeholder="2020 - Present" 
+                        className="mt-1"
+                        value={formData.duration}
+                        onChange={(e) => handleInputChange("duration", e.target.value)}
+                      />
                     </div>
                   </div>
                   <div>
                     <Label htmlFor="description">{t("cvBuilder.description")}</Label>
-                    <Textarea id="description" rows={4} placeholder={t("cvBuilder.description")} className="mt-1" />
+                    <Textarea 
+                      id="description" 
+                      rows={4} 
+                      placeholder={t("cvBuilder.description")} 
+                      className="mt-1"
+                      value={formData.description}
+                      onChange={(e) => handleInputChange("description", e.target.value)}
+                    />
                   </div>
                   <Button variant="outline" className="w-full">{t("cvBuilder.addPosition")}</Button>
                 </div>
@@ -143,11 +275,24 @@ const CVBuilder = () => {
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="education">{t("cvBuilder.educationField")}</Label>
-                    <Input id="education" placeholder="Bachelor's in Computer Science" className="mt-1" />
+                    <Input 
+                      id="education" 
+                      placeholder="Bachelor's in Computer Science" 
+                      className="mt-1"
+                      value={formData.education}
+                      onChange={(e) => handleInputChange("education", e.target.value)}
+                    />
                   </div>
                   <div>
                     <Label htmlFor="skills">{t("cvBuilder.skills")}</Label>
-                    <Textarea id="skills" rows={3} placeholder="React, TypeScript, Node.js..." className="mt-1" />
+                    <Textarea 
+                      id="skills" 
+                      rows={3} 
+                      placeholder="React, TypeScript, Node.js..." 
+                      className="mt-1"
+                      value={formData.skills}
+                      onChange={(e) => handleInputChange("skills", e.target.value)}
+                    />
                   </div>
                 </div>
               </Card>
@@ -165,9 +310,11 @@ const CVBuilder = () => {
 
                 <Button 
                   className="w-full gradient-primary mb-4"
-                  onClick={generateSuggestion}
+                  onClick={handleAIGenerate}
+                  disabled={isGenerating || !formData.fullName}
                 >
-                  {t("cvBuilder.getAISuggestions")}
+                  <FileText className="h-4 w-4 mr-2" />
+                  {isGenerating ? t("cvBuilder.generating") : t("cvBuilder.aiGenerate")}
                 </Button>
 
                 {aiSuggestion && (
@@ -191,6 +338,25 @@ const CVBuilder = () => {
             </div>
           </div>
         </div>
+
+        {/* Preview Dialog */}
+        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>{t("cvBuilder.previewCV")}</DialogTitle>
+            </DialogHeader>
+            <CVPreview data={formData} template={selectedTemplate} />
+            <div className="flex justify-end gap-3 mt-4">
+              <Button variant="outline" onClick={() => setShowPreview(false)}>
+                Close
+              </Button>
+              <Button className="gradient-primary" onClick={handleDownloadPDF}>
+                <Download className="h-4 w-4 mr-2" />
+                {t("cvBuilder.downloadPDF")}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

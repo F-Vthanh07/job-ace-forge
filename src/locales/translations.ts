@@ -85,6 +85,10 @@ export const translations = {
       checkGrammar: "Check Grammar",
       preview: "Preview",
       saveCV: "Save CV",
+      aiGenerate: "AI Generate CV",
+      previewCV: "Preview CV",
+      downloadPDF: "Download PDF",
+      generating: "Generating...",
     },
     interview: {
       setupTitle: "Mock Interview Setup",
@@ -200,6 +204,10 @@ export const translations = {
       checkGrammar: "Kiểm Tra Ngữ Pháp",
       preview: "Xem Trước",
       saveCV: "Lưu CV",
+      aiGenerate: "AI Tạo CV",
+      previewCV: "Xem Trước CV",
+      downloadPDF: "Tải PDF",
+      generating: "Đang tạo...",
     },
     interview: {
       setupTitle: "Thiết Lập Phỏng Vấn",
