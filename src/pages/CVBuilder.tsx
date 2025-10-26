@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, Eye, Download, FileText } from "lucide-react";
+import { Sparkles, Save, Eye, Download, FileText, Upload } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -38,6 +38,7 @@ const CVBuilder = () => {
     description: "",
     education: "",
     skills: "",
+    photo: "",
   });
 
   const generateSuggestion = () => {
@@ -46,6 +47,17 @@ const CVBuilder = () => {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData((prev) => ({ ...prev, photo: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const handleAIGenerate = () => {
@@ -151,6 +163,28 @@ const CVBuilder = () => {
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.personalInfo")}</h2>
                 <div className="space-y-4">
+                  <div className="flex flex-col items-center mb-4">
+                    <div className="w-32 h-32 rounded-full bg-muted flex items-center justify-center overflow-hidden mb-3">
+                      {formData.photo ? (
+                        <img src={formData.photo} alt="Avatar" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-muted-foreground text-sm">No Photo</span>
+                      )}
+                    </div>
+                    <Label htmlFor="photo-upload" className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-4 py-2 border rounded-lg hover:bg-accent transition-colors">
+                        <Upload className="h-4 w-4" />
+                        <span>Upload Photo</span>
+                      </div>
+                      <Input 
+                        id="photo-upload" 
+                        type="file" 
+                        accept="image/*"
+                        className="hidden"
+                        onChange={handlePhotoUpload}
+                      />
+                    </Label>
+                  </div>
                   <div className="grid md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="fullName">{t("cvBuilder.fullName")}</Label>
