@@ -37,8 +37,8 @@ const RecruiterLogin = () => {
 
           <div className="text-center text-sm">
             <span className="text-muted-foreground">Need an enterprise account? </span>
-            <Link to="/enterprise-signup" className="text-primary hover:underline font-medium">
-              Contact Sales
+            <Link to="/recruiter-signup" className="text-primary hover:underline font-medium">
+              Sign up here
             </Link>
           </div>
         </form>

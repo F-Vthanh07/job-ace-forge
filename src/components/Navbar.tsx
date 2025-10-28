@@ -17,7 +17,11 @@ export const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
   
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/";
+  const isAuthPage = location.pathname === "/login" || 
+                      location.pathname === "/signup" || 
+                      location.pathname === "/recruiter-login" ||
+                      location.pathname === "/recruiter-signup" ||
+                      location.pathname === "/";
   
   if (isAuthPage) return null;
 
@@ -29,16 +33,30 @@ export const Navbar = () => {
   ];
 
   const recruiterLinks = [
-    { name: t("nav.dashboard"), path: "/recruiter-dashboard" },
-    { name: t("nav.postJob"), path: "/post-job" },
-    { name: t("nav.candidates"), path: "/candidates" },
+    { name: "Dashboard", path: "/recruiter-dashboard" },
+    { name: "Post Job", path: "/post-job" },
+    { name: "Manage Jobs", path: "/manage-jobs" },
+    { name: "Candidates", path: "/candidates" },
+    { name: "Profile", path: "/business-profile" },
+  ];
+
+  const adminLinks = [
+    { name: "Dashboard", path: "/admin" },
+    { name: "Users", path: "/admin/users" },
+    { name: "Businesses", path: "/admin/businesses" },
+    { name: "Pricing", path: "/admin/pricing" },
+    { name: "Reports", path: "/admin/reports" },
   ];
 
   const isRecruiterPath = location.pathname.includes("recruiter") || 
-                          location.pathname.includes("post-job") || 
+                          location.pathname.includes("post-job") ||
+                          location.pathname.includes("manage-jobs") ||
+                          location.pathname.includes("business-profile") ||
                           location.pathname.includes("candidates");
+  
+  const isAdminPath = location.pathname.includes("admin");
 
-  const links = isRecruiterPath ? recruiterLinks : candidateLinks;
+  const links = isAdminPath ? adminLinks : (isRecruiterPath ? recruiterLinks : candidateLinks);
 
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">

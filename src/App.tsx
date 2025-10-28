@@ -24,11 +24,20 @@ import JobDetail from "./pages/JobDetail";
 import Premium from "./pages/Premium";
 import Payment from "./pages/Payment";
 import RecruiterLogin from "./pages/RecruiterLogin";
-import EnterpriseSignup from "./pages/EnterpriseSignup";
+import RecruiterSignup from "./pages/RecruiterSignup";
+import BusinessProfile from "./pages/BusinessProfile";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import PostJob from "./pages/PostJob";
+import ManageJobs from "./pages/ManageJobs";
+import RecruiterPremium from "./pages/RecruiterPremium";
 import Candidates from "./pages/Candidates";
 import CandidateReport from "./pages/CandidateReport";
+import AdminDashboard from "./pages/AdminDashboard";
+import AdminUsers from "./pages/AdminUsers";
+import AdminBusinesses from "./pages/AdminBusinesses";
+import AdminPricing from "./pages/AdminPricing";
+import AdminReports from "./pages/AdminReports";
+import EnterpriseSignup from "./pages/EnterpriseSignup";
 import EnterprisePayment from "./pages/EnterprisePayment";
 import NotFound from "./pages/NotFound";
 
@@ -67,12 +76,23 @@ const App = () => (
               
               {/* Recruiter Routes */}
               <Route path="/recruiter-login" element={<RecruiterLogin />} />
-              <Route path="/enterprise-signup" element={<EnterpriseSignup />} />
+              <Route path="/recruiter-signup" element={<RecruiterSignup />} />
+              <Route path="/business-profile" element={<BusinessProfile />} />
               <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
               <Route path="/post-job" element={<PostJob />} />
+              <Route path="/manage-jobs" element={<ManageJobs />} />
+              <Route path="/recruiter-premium" element={<RecruiterPremium />} />
               <Route path="/candidates" element={<Candidates />} />
               <Route path="/candidate-report/:id" element={<CandidateReport />} />
+              <Route path="/enterprise-signup" element={<EnterpriseSignup />} />
               <Route path="/enterprise-payment" element={<EnterprisePayment />} />
+              
+              {/* Admin Routes */}
+              <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/businesses" element={<AdminBusinesses />} />
+              <Route path="/admin/pricing" element={<AdminPricing />} />
+              <Route path="/admin/reports" element={<AdminReports />} />
               
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
