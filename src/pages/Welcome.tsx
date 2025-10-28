@@ -66,11 +66,11 @@ const Welcome = () => {
         <div className="container mx-auto px-4 py-20 relative">
           <div className="max-w-4xl mx-auto text-center mb-12">
             <h1 className="text-5xl md:text-7xl font-bold mb-6 text-gradient">
-              {t("welcome.hero")}
+              {t("welcome.hero.title")}
             </h1>
             
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              {t("welcome.subtitle")}
+              {t("welcome.hero.subtitle")}
             </p>
 
             {/* Job Search Bar */}
@@ -79,20 +79,20 @@ const Welcome = () => {
                 <div className="flex-1 relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder={t("welcome.searchPlaceholder")}
+                    placeholder={t("welcome.hero.searchPlaceholder")}
                     className="pl-10"
                   />
                 </div>
                 <div className="flex-1 relative">
                   <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input 
-                    placeholder={t("welcome.locationPlaceholder")}
+                    placeholder={t("welcome.hero.locationPlaceholder")}
                     className="pl-10"
                   />
                 </div>
                 <Button className="gradient-primary shadow-glow md:w-auto w-full">
                   <Search className="h-4 w-4 mr-2" />
-                  {t("welcome.searchButton")}
+                  {t("welcome.hero.searchButton")}
                 </Button>
               </div>
             </Card>
@@ -133,18 +133,18 @@ const Welcome = () => {
         <div className="grid md:grid-cols-3 gap-8">
           <FeatureCard
             icon={Target}
-            title={t("welcome.cvBuilder")}
-            description={t("welcome.cvBuilderDesc")}
+            title={t("welcome.features.cvBuilder.title")}
+            description={t("welcome.features.cvBuilder.description")}
           />
           <FeatureCard
             icon={Zap}
-            title={t("welcome.mockInterview")}
-            description={t("welcome.mockInterviewDesc")}
+            title={t("welcome.features.interview.title")}
+            description={t("welcome.features.interview.description")}
           />
           <FeatureCard
             icon={TrendingUp}
-            title={t("welcome.jobMatch")}
-            description={t("welcome.jobMatchDesc")}
+            title={t("welcome.features.matching.title")}
+            description={t("welcome.features.matching.description")}
           />
         </div>
       </div>
