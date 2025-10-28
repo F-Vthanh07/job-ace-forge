@@ -4,7 +4,6 @@ import { Sparkles, User, Menu, X, Moon, Sun, Globe } from "lucide-react";
 import { useState } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { useAuth } from "@/hooks/useAuth";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,9 +16,8 @@ export const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { theme, toggleTheme } = useTheme();
   const { language, setLanguage, t } = useLanguage();
-  const { role } = useAuth();
   
-  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/" || location.pathname === "/recruiter-login";
+  const isAuthPage = location.pathname === "/login" || location.pathname === "/signup" || location.pathname === "/";
   
   if (isAuthPage) return null;
 
@@ -36,25 +34,11 @@ export const Navbar = () => {
     { name: t("nav.candidates"), path: "/candidates" },
   ];
 
-  const adminLinks = [
-    { name: "Dashboard", path: "/admin" },
-    { name: "Users", path: "/admin/users" },
-    { name: "Businesses", path: "/admin/businesses" },
-    { name: "Pricing", path: "/admin/pricing" },
-    { name: "Reports", path: "/admin/reports" },
-  ];
-
-  const isAdminPath = location.pathname.includes("/admin");
   const isRecruiterPath = location.pathname.includes("recruiter") || 
                           location.pathname.includes("post-job") || 
                           location.pathname.includes("candidates");
 
-  let links = candidateLinks;
-  if (role === "admin" || isAdminPath) {
-    links = adminLinks;
-  } else if (role === "business" || isRecruiterPath) {
-    links = recruiterLinks;
-  }
+  const links = isRecruiterPath ? recruiterLinks : candidateLinks;
 
   return (
     <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">

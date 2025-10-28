@@ -30,11 +30,6 @@ import PostJob from "./pages/PostJob";
 import Candidates from "./pages/Candidates";
 import CandidateReport from "./pages/CandidateReport";
 import EnterprisePayment from "./pages/EnterprisePayment";
-import AdminDashboard from "./pages/AdminDashboard";
-import AdminUsers from "./pages/AdminUsers";
-import AdminBusinesses from "./pages/AdminBusinesses";
-import AdminPricing from "./pages/AdminPricing";
-import AdminReports from "./pages/AdminReports";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -78,13 +73,6 @@ const App = () => (
               <Route path="/candidates" element={<Candidates />} />
               <Route path="/candidate-report/:id" element={<CandidateReport />} />
               <Route path="/enterprise-payment" element={<EnterprisePayment />} />
-              
-              {/* Admin Routes */}
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/businesses" element={<AdminBusinesses />} />
-              <Route path="/admin/pricing" element={<AdminPricing />} />
-              <Route path="/admin/reports" element={<AdminReports />} />
               
               {/* 404 */}
               <Route path="*" element={<NotFound />} />
