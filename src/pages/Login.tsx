@@ -35,11 +35,19 @@ const Login = () => {
             <Link to="/jobs">Sign In</Link>
           </Button>
 
-          <div className="text-center text-sm">
-            <span className="text-muted-foreground">Don't have an account? </span>
-            <Link to="/signup" className="text-primary hover:underline font-medium">
-              Sign up
-            </Link>
+          <div className="text-center text-sm space-y-2">
+            <div>
+              <span className="text-muted-foreground">Don't have an account? </span>
+              <Link to="/signup" className="text-primary hover:underline font-medium">
+                Sign up
+              </Link>
+            </div>
+            <div>
+              <span className="text-muted-foreground">Are you a business? </span>
+              <Link to="/recruiter-login" className="text-primary hover:underline font-medium">
+                Business Login
+              </Link>
+            </div>
           </div>
         </form>
       </Card>
