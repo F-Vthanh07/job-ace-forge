@@ -111,15 +111,21 @@ export const Navbar = () => {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="ghost" size="sm" asChild>
-              <Link to="/profile">
-                <User className="h-4 w-4 mr-2" />
-                {t("common.profile")}
-              </Link>
-            </Button>
-            <Button size="sm" className="gradient-primary shadow-glow" asChild>
-              <Link to="/premium">{t("common.upgrade")}</Link>
-            </Button>
+            {!isAdminPath && (
+              <>
+                <Button variant="ghost" size="sm" asChild>
+                  <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>
+                    <User className="h-4 w-4 mr-2" />
+                    {t("common.profile")}
+                  </Link>
+                </Button>
+                <Button size="sm" className="gradient-primary shadow-glow" asChild>
+                  <Link to={isRecruiterPath ? "/recruiter-premium" : "/premium"}>
+                    {t("common.upgrade")}
+                  </Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -148,20 +154,24 @@ export const Navbar = () => {
                 {link.name}
               </Link>
             ))}
-            <Link
-              to="/profile"
-              className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Profile
-            </Link>
-            <Link
-              to="/premium"
-              className="block px-3 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground"
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              Upgrade to Premium
-            </Link>
+            {!isAdminPath && (
+              <>
+                <Link
+                  to={isRecruiterPath ? "/business-profile" : "/profile"}
+                  className="block px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Profile
+                </Link>
+                <Link
+                  to={isRecruiterPath ? "/recruiter-premium" : "/premium"}
+                  className="block px-3 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  Upgrade to Premium
+                </Link>
+              </>
+            )}
           </div>
         )}
       </div>
