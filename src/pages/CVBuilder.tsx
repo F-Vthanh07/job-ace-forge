@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Save, Eye, Download, FileText, Upload } from "lucide-react";
+import { Sparkles, Eye, Download, FileText, Upload } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -16,6 +16,7 @@ import simpleTemplate from "@/assets/cv-template-simple.png";
 import modernTemplate from "@/assets/cv-template-modern.png";
 import professionalTemplate from "@/assets/cv-template-professional.png";
 import creativeTemplate from "@/assets/cv-template-creative.png";
+import { Link } from "react-router-dom";
 
 const CVBuilder = () => {
   const [aiSuggestion, setAiSuggestion] = useState("");
@@ -41,10 +42,6 @@ const CVBuilder = () => {
     photo: "",
   });
 
-  const generateSuggestion = () => {
-    setAiSuggestion("Consider highlighting your leadership experience in managing cross-functional teams. This adds value to your profile for senior positions.");
-  };
-
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -64,6 +61,9 @@ const CVBuilder = () => {
     setIsGenerating(true);
     setTimeout(() => {
       setIsGenerating(false);
+      setAiSuggestion(
+        "Gợi ý: Nhấn mạnh thành tựu định lượng (ví dụ: tăng 25% hiệu suất hệ thống, giảm 40% lỗi sản xuất) và thêm 5–7 kỹ năng liên quan tới vị trí mục tiêu."
+      );
       toast({
         title: "CV Generated",
         description: "Your CV has been generated with AI assistance!",
@@ -109,6 +109,9 @@ const CVBuilder = () => {
               <p className="text-muted-foreground">{t("cvBuilder.subtitle")}</p>
             </div>
             <div className="flex gap-3">
+              <Button asChild variant="outline">
+                <Link to="/cv-manager">Xem tất cả CV</Link>
+              </Button>
               <Button 
                 variant="outline" 
                 onClick={() => setShowPreview(true)}
@@ -129,7 +132,7 @@ const CVBuilder = () => {
           </div>
 
           {/* Template Selection */}
-          <Card className="p-6 mb-6">
+          <Card className="p-6 mb-6 bg-white dark:bg-white">
             <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.selectTemplate")}</h2>
             <RadioGroup value={selectedTemplate} onValueChange={setSelectedTemplate}>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -160,7 +163,7 @@ const CVBuilder = () => {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Editor */}
             <div className="lg:col-span-2 space-y-6">
-              <Card className="p-6">
+              <Card className="p-6 bg-white dark:bg-white">
                 <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.personalInfo")}</h2>
                 <div className="space-y-4">
                   <div className="flex flex-col items-center mb-4">
@@ -191,7 +194,7 @@ const CVBuilder = () => {
                       <Input 
                         id="fullName" 
                         placeholder="John Doe" 
-                        className="mt-1"
+                        className="mt-1 bg-white dark:bg-white"
                         value={formData.fullName}
                         onChange={(e) => handleInputChange("fullName", e.target.value)}
                       />
@@ -202,7 +205,7 @@ const CVBuilder = () => {
                         id="email" 
                         type="email" 
                         placeholder="john@example.com" 
-                        className="mt-1"
+                        className="mt-1 bg-white dark:bg-white"
                         value={formData.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
                       />
@@ -214,7 +217,7 @@ const CVBuilder = () => {
                       <Input 
                         id="phone" 
                         placeholder="+84 123 456 789" 
-                        className="mt-1"
+                        className="mt-1 bg-white dark:bg-white"
                         value={formData.phone}
                         onChange={(e) => handleInputChange("phone", e.target.value)}
                       />
@@ -224,7 +227,7 @@ const CVBuilder = () => {
                       <Input 
                         id="address" 
                         placeholder="Ho Chi Minh City" 
-                        className="mt-1"
+                        className="mt-1 bg-white dark:bg-white"
                         value={formData.address}
                         onChange={(e) => handleInputChange("address", e.target.value)}
                       />
@@ -235,7 +238,7 @@ const CVBuilder = () => {
                     <Input 
                       id="title" 
                       placeholder="Senior Frontend Developer" 
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                       value={formData.title}
                       onChange={(e) => handleInputChange("title", e.target.value)}
                     />
@@ -246,7 +249,7 @@ const CVBuilder = () => {
                       id="summary" 
                       rows={4} 
                       placeholder={t("cvBuilder.summary")} 
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                       value={formData.summary}
                       onChange={(e) => handleInputChange("summary", e.target.value)}
                     />
@@ -254,7 +257,7 @@ const CVBuilder = () => {
                 </div>
               </Card>
 
-              <Card className="p-6">
+              <Card className="p-6 bg-white dark:bg-white">
                 <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.workExperience")}</h2>
                 <div className="space-y-4">
                   <div>
@@ -262,7 +265,7 @@ const CVBuilder = () => {
                     <Input 
                       id="company" 
                       placeholder="Tech Company Inc." 
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                       value={formData.company}
                       onChange={(e) => handleInputChange("company", e.target.value)}
                     />
@@ -273,7 +276,7 @@ const CVBuilder = () => {
                       <Input 
                         id="position" 
                         placeholder="Senior Developer" 
-                        className="mt-1"
+                        className="mt-1 bg-white dark:bg-white"
                         value={formData.position}
                         onChange={(e) => handleInputChange("position", e.target.value)}
                       />
@@ -283,7 +286,7 @@ const CVBuilder = () => {
                       <Input 
                         id="duration" 
                         placeholder="2020 - Present" 
-                        className="mt-1"
+                        className="mt-1 bg-white dark:bg-white"
                         value={formData.duration}
                         onChange={(e) => handleInputChange("duration", e.target.value)}
                       />
@@ -295,7 +298,7 @@ const CVBuilder = () => {
                       id="description" 
                       rows={4} 
                       placeholder={t("cvBuilder.description")} 
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                       value={formData.description}
                       onChange={(e) => handleInputChange("description", e.target.value)}
                     />
@@ -304,7 +307,7 @@ const CVBuilder = () => {
                 </div>
               </Card>
 
-              <Card className="p-6">
+              <Card className="p-6 bg-white dark:bg-white">
                 <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.educationSection")}</h2>
                 <div className="space-y-4">
                   <div>
@@ -312,7 +315,7 @@ const CVBuilder = () => {
                     <Input 
                       id="education" 
                       placeholder="Bachelor's in Computer Science" 
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                       value={formData.education}
                       onChange={(e) => handleInputChange("education", e.target.value)}
                     />
@@ -323,7 +326,7 @@ const CVBuilder = () => {
                       id="skills" 
                       rows={3} 
                       placeholder="React, TypeScript, Node.js..." 
-                      className="mt-1"
+                      className="mt-1 bg-white dark:bg-white"
                       value={formData.skills}
                       onChange={(e) => handleInputChange("skills", e.target.value)}
                     />
@@ -334,7 +337,7 @@ const CVBuilder = () => {
 
             {/* AI Assistant */}
             <div className="space-y-6">
-              <Card className="p-6 sticky top-4">
+              <Card className="p-6 sticky top-4 bg-white dark:bg-white">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="gradient-primary p-2 rounded-lg">
                     <Sparkles className="h-5 w-5 text-white" />
@@ -375,7 +378,7 @@ const CVBuilder = () => {
 
         {/* Preview Dialog */}
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-white">
             <DialogHeader>
               <DialogTitle>{t("cvBuilder.previewCV")}</DialogTitle>
             </DialogHeader>
