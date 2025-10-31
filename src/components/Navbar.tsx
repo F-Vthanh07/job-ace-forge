@@ -157,13 +157,13 @@ export const Navbar = () => {
                           <AvatarFallback>U</AvatarFallback>
                         </Avatar>
                         <div className="text-sm">
-                          <div className="font-medium">Tài khoản của bạn</div>
+                          <div className="font-medium">{t("common.yourAccount")}</div>
                           <div className="text-muted-foreground">user@example.com</div>
                         </div>
                       </div>
                       <div className="mt-3 grid gap-2">
                         <Button variant="outline" size="sm" asChild>
-                          <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>Xem hồ sơ</Link>
+                          <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>{t("common.viewProfile")}</Link>
                         </Button>
                         <Button
                           variant="ghost"
@@ -171,7 +171,7 @@ export const Navbar = () => {
                           className="justify-start text-destructive hover:text-destructive"
                           onClick={handleLogout}
                         >
-                          <LogOut className="h-4 w-4 mr-2" /> Đăng xuất
+                          <LogOut className="h-4 w-4 mr-2" /> {t("common.logout")}
                         </Button>
                       </div>
                     </HoverCardContent>
@@ -227,7 +227,7 @@ export const Navbar = () => {
                     onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
                     className="text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary text-destructive"
                   >
-                    Đăng xuất
+                    {t("common.logout")}
                   </button>
                   <Link
                     to={isRecruiterPath ? "/recruiter-premium" : "/premium"}

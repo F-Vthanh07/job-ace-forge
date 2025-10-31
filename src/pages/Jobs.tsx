@@ -5,8 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, MapPin, Briefcase, DollarSign, TrendingUp } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Jobs = () => {
+  const { t } = useLanguage();
   const jobs = [
     {
       id: 1,
@@ -56,8 +58,8 @@ const Jobs = () => {
       
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-2">Job Opportunities</h1>
-          <p className="text-muted-foreground">Discover jobs that match your skills and aspirations</p>
+          <h1 className="text-4xl font-bold mb-2">{t("jobs.title")}</h1>
+          <p className="text-muted-foreground">{t("dashboard.findJobsDesc")}</p>
         </div>
 
         {/* Search & Filter */}
@@ -66,14 +68,14 @@ const Jobs = () => {
             <div className="relative md:col-span-2">
               <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input 
-                placeholder="Job title, keywords..." 
+                placeholder={t("welcome.searchPlaceholder")} 
                 className="pl-10"
               />
             </div>
             <div className="relative">
               <MapPin className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input 
-                placeholder="Location" 
+                placeholder={t("welcome.locationPlaceholder")} 
                 className="pl-10"
               />
             </div>
@@ -112,16 +114,16 @@ const Jobs = () => {
                   <div className="flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-success" />
                     <span className="text-sm font-medium">
-                      <span className="text-success">{job.matchRate}%</span> match with your profile
+                      {t("jobs.matchRate")}: <span className="text-success">{job.matchRate}%</span>
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-2">
                   <Button className="gradient-primary" asChild>
-                    <Link to={`/job-detail/${job.id}`}>View Details</Link>
+                    <Link to={`/job-detail/${job.id}`}>{t("common.viewDetails")}</Link>
                   </Button>
-                  <Button variant="outline">Save</Button>
+                  <Button variant="outline">{t("jobs.saveJob")}</Button>
                 </div>
               </div>
             </Card>

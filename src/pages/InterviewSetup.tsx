@@ -28,20 +28,20 @@ const InterviewSetup = () => {
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-full mb-4">
               <Video className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-primary">AI-Powered Mock Interview</span>
+              <span className="text-sm font-medium text-primary">{t("interview.badge")}</span>
             </div>
             <h1 className="text-4xl font-bold mb-3">{t("interview.setupTitle")}</h1>
-            <p className="text-muted-foreground">Configure your practice session for the best experience</p>
+            <p className="text-muted-foreground">{t("interview.setupSubtitle")}</p>
           </div>
 
           <Card className="p-8 mb-6">
             <div className="space-y-6">
               {/* Industry Selection */}
               <div>
-                <Label className="text-lg font-semibold mb-3 block">Industry</Label>
+                <Label className="text-lg font-semibold mb-3 block">{t("interview.industry")}</Label>
                 <Select>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select industry" />
+                    <SelectValue placeholder={t("interview.selectIndustry")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="tech">Technology</SelectItem>
@@ -55,10 +55,10 @@ const InterviewSetup = () => {
 
               {/* Role Selection */}
               <div>
-                <Label className="text-lg font-semibold mb-3 block">Target Role</Label>
+                <Label className="text-lg font-semibold mb-3 block">{t("interview.targetRole")}</Label>
                 <Select>
                   <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
+                    <SelectValue placeholder={t("interview.selectRole")} />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="frontend">Frontend Developer</SelectItem>
@@ -72,15 +72,15 @@ const InterviewSetup = () => {
 
               {/* Interview Style */}
               <div>
-                <Label className="text-lg font-semibold mb-3 block">Interview Style</Label>
+                <Label className="text-lg font-semibold mb-3 block">{t("interview.interviewStyle")}</Label>
                 <RadioGroup defaultValue="behavioral">
                   <div className="space-y-3">
                     <div className="flex items-center space-x-3 p-4 rounded-lg border hover:border-primary transition-colors cursor-pointer">
                       <RadioGroupItem value="behavioral" id="behavioral" />
                       <Label htmlFor="behavioral" className="flex-1 cursor-pointer">
                         <div>
-                          <p className="font-medium">Behavioral</p>
-                          <p className="text-sm text-muted-foreground">Focus on past experiences and soft skills</p>
+                          <p className="font-medium">{t("interview.behavioral")}</p>
+                          <p className="text-sm text-muted-foreground">{t("interview.behavioralDesc")}</p>
                         </div>
                       </Label>
                     </div>
@@ -88,8 +88,8 @@ const InterviewSetup = () => {
                       <RadioGroupItem value="technical" id="technical" />
                       <Label htmlFor="technical" className="flex-1 cursor-pointer">
                         <div>
-                          <p className="font-medium">Technical</p>
-                          <p className="text-sm text-muted-foreground">Coding challenges and technical knowledge</p>
+                          <p className="font-medium">{t("interview.technical")}</p>
+                          <p className="text-sm text-muted-foreground">{t("interview.technicalDesc")}</p>
                         </div>
                       </Label>
                     </div>
@@ -97,8 +97,8 @@ const InterviewSetup = () => {
                       <RadioGroupItem value="mixed" id="mixed" />
                       <Label htmlFor="mixed" className="flex-1 cursor-pointer">
                         <div>
-                          <p className="font-medium">Mixed</p>
-                          <p className="text-sm text-muted-foreground">Combination of behavioral and technical</p>
+                          <p className="font-medium">{t("interview.mixed")}</p>
+                          <p className="text-sm text-muted-foreground">{t("interview.mixedDesc")}</p>
                         </div>
                       </Label>
                     </div>

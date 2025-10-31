@@ -8,11 +8,14 @@ import { type CarouselApi, Carousel, CarouselContent, CarouselItem, CarouselNext
 import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, Moon, Sun, Globe, CheckCircle, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { translations } from "@/locales/translations";
 import { useEffect, useState } from "react";
 
 const Welcome = () => {
   const { theme, toggleTheme } = useTheme();
-  const { setLanguage: setLang, t: tr } = useLanguage();
+  const { setLanguage: setLang, t: tr, language } = useLanguage();
+  // direct access for non-string arrays
+  const dict = translations[language as "en" | "vi"];
 
   type Step = {
     id: string;
@@ -27,37 +30,37 @@ const Welcome = () => {
   const steps: Step[] = [
     {
       id: "signup",
-      title: "Đăng ký tài khoản",
-      desc: "Tạo tài khoản trong 1 phút bằng Email/Google.",
+      title: tr("onboarding.signupTitle"),
+      desc: tr("onboarding.signupDesc"),
       link: "/signup",
-      cta: "Đăng ký",
+      cta: tr("onboarding.signupCta"),
       icon: UserPlus,
       color: "from-violet-500 to-fuchsia-500",
     },
     {
       id: "cv",
-      title: "Tạo CV AI",
-      desc: "Nhập kinh nghiệm, chọn mẫu đẹp và tối ưu ATS.",
+      title: tr("onboarding.cvTitle"),
+      desc: tr("onboarding.cvDesc"),
       link: "/cv-builder",
-      cta: "Tạo CV",
+      cta: tr("onboarding.cvCta"),
       icon: FileText,
       color: "from-sky-500 to-cyan-500",
     },
     {
       id: "interview",
-      title: "Luyện phỏng vấn AI",
-      desc: "Chọn vị trí, mức độ và nhận feedback chi tiết.",
+      title: tr("onboarding.interviewTitle"),
+      desc: tr("onboarding.interviewDesc"),
       link: "/interview-setup",
-      cta: "Luyện tập",
+      cta: tr("onboarding.interviewCta"),
       icon: Bot,
       color: "from-amber-500 to-orange-500",
     },
     {
       id: "jobs",
-      title: "Tìm việc phù hợp",
-      desc: "Khám phá cơ hội theo gợi ý thông minh của AI.",
+      title: tr("onboarding.jobsTitle"),
+      desc: tr("onboarding.jobsDesc"),
       link: "/jobs",
-      cta: "Khám phá việc làm",
+      cta: tr("onboarding.jobsCta"),
       icon: Briefcase,
       color: "from-emerald-500 to-teal-500",
     },
@@ -89,15 +92,15 @@ const Welcome = () => {
   ] as const;
 
   const features = [
-    { id: "feature-cv", icon: Target, title: tr("welcome.cvBuilder"), desc: tr("welcome.cvBuilderDesc"), to: "/cv-builder", cta: "Tạo CV" },
-    { id: "feature-interview", icon: Zap, title: tr("welcome.mockInterview"), desc: tr("welcome.mockInterviewDesc"), to: "/interview-setup", cta: "Luyện tập" },
-    { id: "feature-jobs", icon: TrendingUp, title: tr("welcome.jobMatch"), desc: tr("welcome.jobMatchDesc"), to: "/jobs", cta: "Khám phá" },
+    { id: "feature-cv", icon: Target, title: tr("welcome.cvBuilder"), desc: tr("welcome.cvBuilderDesc"), to: "/cv-builder", cta: tr("onboarding.cvCta") },
+    { id: "feature-interview", icon: Zap, title: tr("welcome.mockInterview"), desc: tr("welcome.mockInterviewDesc"), to: "/interview-setup", cta: tr("onboarding.interviewCta") },
+    { id: "feature-jobs", icon: TrendingUp, title: tr("welcome.jobMatch"), desc: tr("welcome.jobMatchDesc"), to: "/jobs", cta: tr("onboarding.jobsCta") },
   ] as const;
 
   const pricing = [
-    { id: "free", name: "Free", price: "0đ", benefits: ["Tạo CV cơ bản","Tìm kiếm việc","Giới hạn tính năng"], cta: "Bắt đầu", link: "/signup", highlight: false },
-    { id: "premium", name: "Premium", price: "149k/tháng", highlight: true, benefits: ["Gợi ý AI nâng cao","Xuất CV PDF chất lượng","Ưu tiên Job Match"], cta: "Nâng cấp", link: "/premium" },
-    { id: "enterprise", name: "Enterprise", price: "Liên hệ", benefits: ["Dashboard nhà tuyển dụng","Quản lý tin tuyển","Hỗ trợ ưu tiên"], cta: "Liên hệ", link: "/enterprise-signup", highlight: false },
+    { id: "free", name: "Free", price: "0đ", benefits: dict.pricing.benefits.free, cta: tr("pricing.cta.free"), link: "/signup", highlight: false },
+    { id: "premium", name: "Premium", price: "149k/tháng", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/premium" },
+    { id: "enterprise", name: "Enterprise", price: "Liên hệ", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/enterprise-signup", highlight: false },
   ] as const;
 
   // Slider data and autoplay state
@@ -245,7 +248,7 @@ const Welcome = () => {
                 <div className="rounded-full p-2 bg-secondary">
                   <List className="h-4 w-4" />
                 </div>
-                <span className="font-semibold">Danh mục Nghề</span>
+                <span className="font-semibold">{tr("categories.title")}</span>
               </div>
               <ul className="max-h-80 overflow-y-auto">
                 {categories.map((c) => (
@@ -260,7 +263,7 @@ const Welcome = () => {
                   </li>
                 ))}
               </ul>
-              <Link to="/jobs" className="px-4 py-3 border-t text-sm text-primary hover:underline cursor-pointer">Xem tất cả</Link>
+              <Link to="/jobs" className="px-4 py-3 border-t text-sm text-primary hover:underline cursor-pointer">{tr("categories.seeAll")}</Link>
             </Card>
 
             {/* Slider column */}
@@ -322,8 +325,8 @@ const Welcome = () => {
         <div aria-hidden className="absolute -top-20 left-1/2 -translate-x-1/2 h-56 w-[70%] rounded-full bg-primary/10 blur-3xl -z-10" />
         <div className="container mx-auto px-4">
         <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Bắt đầu với hệ thống</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">Làm theo 4 bước đơn giản để tạo CV, luyện phỏng vấn và ứng tuyển nhanh chóng.</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("onboarding.title")}</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">{tr("onboarding.subtitle")}</p>
         </div>
         <div className="relative max-w-6xl mx-auto">
           {/* connector line for desktop */}
@@ -369,8 +372,8 @@ const Welcome = () => {
         <div aria-hidden className="absolute inset-x-0 bottom-0 -z-10 h-px bg-gradient-to-r from-transparent via-muted/60 to-transparent" />
         <div className="container mx-auto px-4">
         <div className="text-center mb-8">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Đối tác & Nhà tuyển dụng</h2>
-          <p className="text-muted-foreground">Hơn 500+ công ty tin dùng nền tảng</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("partners.title")}</h2>
+          <p className="text-muted-foreground">{tr("partners.subtitle")}</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
           {companies.map((co, idx) => (
@@ -392,7 +395,7 @@ const Welcome = () => {
                   </div>
                 </div>
                 <Button size="sm" variant="outline" asChild>
-                  <Link to="/jobs">Ứng tuyển</Link>
+                  <Link to="/jobs">{tr("common.apply")}</Link>
                 </Button>
               </div>
             </Card>
@@ -408,8 +411,8 @@ const Welcome = () => {
         <div aria-hidden className="absolute inset-0 -z-10 bg-gradient-to-r from-accent/20 via-transparent to-primary/10 dark:from-accent/10 dark:to-primary/5" />
         <div className="container mx-auto px-4">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Công cụ nổi bật</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">Đi thẳng tới các tính năng giúp bạn tăng tốc sự nghiệp.</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("features.sectionTitle")}</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">{tr("features.sectionSubtitle")}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {features.map((f) => (
@@ -439,15 +442,15 @@ const Welcome = () => {
         <div aria-hidden className="absolute inset-x-0 top-0 -z-10 h-px bg-gradient-to-r from-transparent via-muted/60 to-transparent" />
         <div className="container mx-auto px-4">
         <div className="text-center mb-10">
-          <h2 className="text-3xl md:text-4xl font-bold mb-3">Gói đăng ký</h2>
-          <p className="text-muted-foreground max-w-2xl mx-auto">Chọn gói phù hợp với mục tiêu của bạn và mở khóa nhiều lợi ích nâng cao.</p>
+          <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("pricing.sectionTitle")}</h2>
+          <p className="text-muted-foreground max-w-2xl mx-auto">{tr("pricing.sectionSubtitle")}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
           {pricing.map((p) => (
             <Card key={p.id} className={`p-6 ${p.highlight ? "border-primary shadow-glow" : ""}`}>
               <div className="flex items-baseline justify-between mb-4">
                 <h3 className="text-xl font-bold">{p.name}</h3>
-                {p.highlight && <Badge className="gradient-primary text-white">Popular</Badge>}
+                {p.highlight && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
               </div>
               <div className="text-3xl font-bold mb-4">{p.price}</div>
               <ul className="space-y-2 mb-6">
@@ -476,28 +479,28 @@ const Welcome = () => {
               </div>
               <span className="font-bold text-xl">{tr("common.appName")}</span>
             </div>
-            <p className="text-muted-foreground">AI-powered career platform to build CVs, practice interviews and find jobs.</p>
+            <p className="text-muted-foreground">{tr("footer.description")}</p>
           </div>
           <div>
-            <h4 className="font-semibold mb-3">Product</h4>
+            <h4 className="font-semibold mb-3">{tr("footer.product")}</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li><Link to="/cv-builder">CV Builder</Link></li>
-              <li><Link to="/interview-setup">Mock Interview</Link></li>
-              <li><Link to="/jobs">Jobs</Link></li>
+              <li><Link to="/cv-builder">{tr("nav.cvBuilder")}</Link></li>
+              <li><Link to="/interview-setup">{tr("nav.mockInterview")}</Link></li>
+              <li><Link to="/jobs">{tr("nav.jobs")}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-3">Company</h4>
+            <h4 className="font-semibold mb-3">{tr("footer.company")}</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li><Link to="/premium">Pricing</Link></li>
-              <li><Link to="/resources">Resources</Link></li>
+              <li><Link to="/premium">{tr("footer.pricing")}</Link></li>
+              <li><Link to="/resources">{tr("footer.resources")}</Link></li>
             </ul>
           </div>
           <div>
-            <h4 className="font-semibold mb-3">Account</h4>
+            <h4 className="font-semibold mb-3">{tr("footer.account")}</h4>
             <ul className="space-y-2 text-muted-foreground">
-              <li><Link to="/login">Sign In</Link></li>
-              <li><Link to="/signup">Get Started</Link></li>
+              <li><Link to="/login">{tr("common.signIn")}</Link></li>
+              <li><Link to="/signup">{tr("common.getStarted")}</Link></li>
             </ul>
           </div>
         </div>
@@ -505,8 +508,8 @@ const Welcome = () => {
           <div className="container mx-auto px-4 py-6 text-sm text-muted-foreground flex flex-col md:flex-row items-center justify-between gap-2">
             <span>© {new Date().getFullYear()} AI JOBMATCH. All rights reserved.</span>
             <div className="flex gap-4">
-              <Link to="#">Terms</Link>
-              <Link to="#">Privacy</Link>
+              <Link to="#">{tr("footer.terms")}</Link>
+              <Link to="#">{tr("footer.privacy")}</Link>
             </div>
           </div>
         </div>

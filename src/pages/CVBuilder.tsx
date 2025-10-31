@@ -110,7 +110,7 @@ const CVBuilder = () => {
             </div>
             <div className="flex gap-3">
               <Button asChild variant="outline">
-                <Link to="/cv-manager">Xem tất cả CV</Link>
+                <Link to="/cv-manager">{t("cvBuilder.viewAllCVs")}</Link>
               </Button>
               <Button 
                 variant="outline" 
