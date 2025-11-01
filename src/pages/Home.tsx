@@ -3,18 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type CarouselApi, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, Moon, Sun, Globe, CheckCircle, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon } from "lucide-react";
-import { useTheme } from "@/contexts/ThemeContext";
+import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { translations } from "@/locales/translations";
 import { useEffect, useState } from "react";
+import { translations } from "@/locales/translations";
+import { Navbar } from "@/components/Navbar";
 
-const Welcome = () => {
-  const { theme, toggleTheme } = useTheme();
-  const { setLanguage: setLang, t: tr, language } = useLanguage();
-  // direct access for non-string arrays
+const Home = () => {
+  const { t: tr, language } = useLanguage();
   const dict = translations[language as "en" | "vi"];
 
   type Step = {
@@ -97,13 +94,6 @@ const Welcome = () => {
     { id: "feature-jobs", icon: TrendingUp, title: tr("welcome.jobMatch"), desc: tr("welcome.jobMatchDesc"), to: "/jobs", cta: tr("onboarding.jobsCta") },
   ] as const;
 
-  const pricing = [
-    { id: "free", name: "Free", price: "0đ", benefits: dict.pricing.benefits.free, cta: tr("pricing.cta.free"), link: "/signup", highlight: false },
-    { id: "premium", name: "Premium", price: "149k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/premium" },
-    { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/enterprise-signup", highlight: false },
-  ] as const;
-
-  // Slider data and autoplay state
   type Slide =
     | { id: string; type: "company"; img: string; company: string; logo: string; title: string; desc: string; to: string; cta: string }
     | { id: string; type: "feature"; img: string; title: string; desc: string; to: string; cta: string };
@@ -118,7 +108,7 @@ const Welcome = () => {
       title: "FPT Telecom đang tuyển dụng",
       desc: "Gia nhập đội ngũ công nghệ hàng đầu. Lương thưởng hấp dẫn, môi trường Agile hiện đại.",
       to: "/jobs?company=FPT%20Telecom",
-      cta: "Xem việc làm",
+      cta: "View Jobs",
     },
     {
       id: "athena",
@@ -138,7 +128,7 @@ const Welcome = () => {
       title: "Phỏng vấn AI thời gian thực",
       desc: "Luyện tập với mô phỏng phỏng vấn bằng AI và nhận phản hồi chi tiết ngay lập tức.",
       to: "/interview-setup",
-      cta: "Luyện tập ngay",
+      cta: "Practice Now",
     },
   ];
   const count = slides.length;
@@ -167,44 +157,7 @@ const Welcome = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 bg-background/80 backdrop-blur-lg border-b border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
-            <Link to="/" className="flex items-center gap-2 group">
-              <div className="gradient-primary p-2 rounded-lg shadow-glow">
-                <Sparkles className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <span className="font-bold text-xl text-gradient">{tr("common.appName")}</span>
-            </Link>
-
-            <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={toggleTheme}>
-                {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-              </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon">
-                    <Globe className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setLang("vi")}>Tiếng Việt</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setLang("en")}>English</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              <Button variant="ghost" asChild>
-                <Link to="/login">{tr("common.signIn")}</Link>
-              </Button>
-              <Button className="gradient-primary shadow-glow" asChild>
-                <Link to="/signup">{tr("common.getStarted")}</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Slider */}
       <section className="relative overflow-hidden min-h-[560px] md:min-h-[620px]">
@@ -446,7 +399,11 @@ const Welcome = () => {
           <p className="text-muted-foreground max-w-2xl mx-auto">{tr("pricing.sectionSubtitle")}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {pricing.map((p) => (
+          {[
+            { id: "free", name: "Free", price: "0đ", benefits: dict.pricing.benefits.free, cta: tr("pricing.cta.free"), link: "/signup", highlight: false },
+            { id: "premium", name: "Premium", price: "149k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/premium" },
+            { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/enterprise-signup", highlight: false },
+          ].map((p) => (
             <Card key={p.id} className={`p-6 ${p.highlight ? "border-primary shadow-glow" : ""}`}>
               <div className="flex items-baseline justify-between mb-4">
                 <h3 className="text-xl font-bold">{p.name}</h3>
@@ -456,7 +413,8 @@ const Welcome = () => {
               <ul className="space-y-2 mb-6">
                 {p.benefits.map((b) => (
                   <li key={`${p.id}-${b}`} className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle className="h-4 w-4 text-success" /> {b}
+                    {/* Reusing an icon from Welcome would require import; keep simple: */}
+                    • {b}
                   </li>
                 ))}
               </ul>
@@ -518,4 +476,4 @@ const Welcome = () => {
   );
 };
 
-export default Welcome;
+export default Home;

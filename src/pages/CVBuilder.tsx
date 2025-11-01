@@ -90,11 +90,12 @@ const CVBuilder = () => {
     });
   };
 
+  // Use a single consistent border color for all templates
   const templates = [
-    { id: "simple", name: t("cvBuilder.templateSimple"), color: "border-primary", preview: simpleTemplate },
+    { id: "simple", name: t("cvBuilder.templateSimple"), color: "border-accent", preview: simpleTemplate },
     { id: "modern", name: t("cvBuilder.templateModern"), color: "border-accent", preview: modernTemplate },
-    { id: "professional", name: t("cvBuilder.templateProfessional"), color: "border-success", preview: professionalTemplate },
-    { id: "creative", name: t("cvBuilder.templateCreative"), color: "border-warning", preview: creativeTemplate },
+    { id: "professional", name: t("cvBuilder.templateProfessional"), color: "border-accent", preview: professionalTemplate },
+    { id: "creative", name: t("cvBuilder.templateCreative"), color: "border-accent", preview: creativeTemplate },
   ];
 
   return (
@@ -132,7 +133,7 @@ const CVBuilder = () => {
           </div>
 
           {/* Template Selection */}
-          <Card className="p-6 mb-6 bg-white dark:bg-white">
+          <Card className="p-6 mb-6 bg-card">
             <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.selectTemplate")}</h2>
             <RadioGroup value={selectedTemplate} onValueChange={setSelectedTemplate}>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -145,12 +146,12 @@ const CVBuilder = () => {
                     />
                     <Label
                       htmlFor={template.id}
-                      className={`flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 ${template.color}`}
+                      className={`group flex flex-col items-center justify-center p-4 border-2 rounded-lg cursor-pointer transition-all duration-200 transform-gpu hover:-translate-y-0.5 hover:shadow-lg hover:ring-2 hover:ring-primary/40 ring-offset-2 ring-offset-background hover:border-primary peer-data-[state=checked]:border-primary peer-data-[state=checked]:bg-primary/5 peer-data-[state=checked]:ring-2 peer-data-[state=checked]:ring-primary/50 ${template.color}`}
                     >
                       <img 
                         src={template.preview} 
                         alt={template.name}
-                        className="w-full h-32 object-cover rounded mb-2 border border-border"
+                        className="w-full h-32 object-cover rounded mb-2 border border-border transition-transform duration-200 group-hover:scale-[1.02]"
                       />
                       <span className="text-sm font-medium">{template.name}</span>
                     </Label>
@@ -163,7 +164,7 @@ const CVBuilder = () => {
           <div className="grid lg:grid-cols-3 gap-6">
             {/* Editor */}
             <div className="lg:col-span-2 space-y-6">
-              <Card className="p-6 bg-white dark:bg-white">
+              <Card className="p-6 bg-card">
                 <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.personalInfo")}</h2>
                 <div className="space-y-4">
                   <div className="flex flex-col items-center mb-4">
@@ -194,7 +195,7 @@ const CVBuilder = () => {
                       <Input 
                         id="fullName" 
                         placeholder="John Doe" 
-                        className="mt-1 bg-white dark:bg-white"
+                        className="mt-1"
                         value={formData.fullName}
                         onChange={(e) => handleInputChange("fullName", e.target.value)}
                       />
@@ -205,7 +206,7 @@ const CVBuilder = () => {
                         id="email" 
                         type="email" 
                         placeholder="john@example.com" 
-                        className="mt-1 bg-white dark:bg-white"
+                        className="mt-1"
                         value={formData.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
                       />
@@ -217,7 +218,7 @@ const CVBuilder = () => {
                       <Input 
                         id="phone" 
                         placeholder="+84 123 456 789" 
-                        className="mt-1 bg-white dark:bg-white"
+                        className="mt-1"
                         value={formData.phone}
                         onChange={(e) => handleInputChange("phone", e.target.value)}
                       />
@@ -227,7 +228,7 @@ const CVBuilder = () => {
                       <Input 
                         id="address" 
                         placeholder="Ho Chi Minh City" 
-                        className="mt-1 bg-white dark:bg-white"
+                        className="mt-1"
                         value={formData.address}
                         onChange={(e) => handleInputChange("address", e.target.value)}
                       />
@@ -238,7 +239,7 @@ const CVBuilder = () => {
                     <Input 
                       id="title" 
                       placeholder="Senior Frontend Developer" 
-                      className="mt-1 bg-white dark:bg-white"
+                      className="mt-1"
                       value={formData.title}
                       onChange={(e) => handleInputChange("title", e.target.value)}
                     />
@@ -249,7 +250,7 @@ const CVBuilder = () => {
                       id="summary" 
                       rows={4} 
                       placeholder={t("cvBuilder.summary")} 
-                      className="mt-1 bg-white dark:bg-white"
+                      className="mt-1"
                       value={formData.summary}
                       onChange={(e) => handleInputChange("summary", e.target.value)}
                     />
@@ -257,7 +258,7 @@ const CVBuilder = () => {
                 </div>
               </Card>
 
-              <Card className="p-6 bg-white dark:bg-white">
+              <Card className="p-6 bg-card">
                 <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.workExperience")}</h2>
                 <div className="space-y-4">
                   <div>
@@ -265,7 +266,7 @@ const CVBuilder = () => {
                     <Input 
                       id="company" 
                       placeholder="Tech Company Inc." 
-                      className="mt-1 bg-white dark:bg-white"
+                      className="mt-1"
                       value={formData.company}
                       onChange={(e) => handleInputChange("company", e.target.value)}
                     />
@@ -276,7 +277,7 @@ const CVBuilder = () => {
                       <Input 
                         id="position" 
                         placeholder="Senior Developer" 
-                        className="mt-1 bg-white dark:bg-white"
+                        className="mt-1"
                         value={formData.position}
                         onChange={(e) => handleInputChange("position", e.target.value)}
                       />
@@ -286,7 +287,7 @@ const CVBuilder = () => {
                       <Input 
                         id="duration" 
                         placeholder="2020 - Present" 
-                        className="mt-1 bg-white dark:bg-white"
+                        className="mt-1"
                         value={formData.duration}
                         onChange={(e) => handleInputChange("duration", e.target.value)}
                       />
@@ -298,7 +299,7 @@ const CVBuilder = () => {
                       id="description" 
                       rows={4} 
                       placeholder={t("cvBuilder.description")} 
-                      className="mt-1 bg-white dark:bg-white"
+                      className="mt-1"
                       value={formData.description}
                       onChange={(e) => handleInputChange("description", e.target.value)}
                     />
@@ -307,7 +308,7 @@ const CVBuilder = () => {
                 </div>
               </Card>
 
-              <Card className="p-6 bg-white dark:bg-white">
+              <Card className="p-6 bg-card">
                 <h2 className="text-2xl font-bold mb-4">{t("cvBuilder.educationSection")}</h2>
                 <div className="space-y-4">
                   <div>
@@ -315,7 +316,7 @@ const CVBuilder = () => {
                     <Input 
                       id="education" 
                       placeholder="Bachelor's in Computer Science" 
-                      className="mt-1 bg-white dark:bg-white"
+                      className="mt-1"
                       value={formData.education}
                       onChange={(e) => handleInputChange("education", e.target.value)}
                     />
@@ -326,7 +327,7 @@ const CVBuilder = () => {
                       id="skills" 
                       rows={3} 
                       placeholder="React, TypeScript, Node.js..." 
-                      className="mt-1 bg-white dark:bg-white"
+                      className="mt-1"
                       value={formData.skills}
                       onChange={(e) => handleInputChange("skills", e.target.value)}
                     />
@@ -337,7 +338,7 @@ const CVBuilder = () => {
 
             {/* AI Assistant */}
             <div className="space-y-6">
-              <Card className="p-6 sticky top-4 bg-white dark:bg-white">
+              <Card className="p-6 sticky top-4 bg-card">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="gradient-primary p-2 rounded-lg">
                     <Sparkles className="h-5 w-5 text-white" />
@@ -378,7 +379,7 @@ const CVBuilder = () => {
 
         {/* Preview Dialog */}
         <Dialog open={showPreview} onOpenChange={setShowPreview}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-white">
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card">
             <DialogHeader>
               <DialogTitle>{t("cvBuilder.previewCV")}</DialogTitle>
             </DialogHeader>

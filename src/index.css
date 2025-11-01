@@ -8,20 +8,21 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
+    /* Light mode: soften pure white to reduce eye strain */
+    --background: 0 0% 98%; /* was 100% */
     --foreground: 240 10% 15%;
 
-    --card: 0 0% 100%;
+    --card: 0 0% 99%; /* was 100% */
     --card-foreground: 240 10% 15%;
 
-    --popover: 0 0% 100%;
+    --popover: 0 0% 99%; /* was 100% */
     --popover-foreground: 240 10% 15%;
 
     --primary: 250 95% 60%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 265 90% 70%;
 
-    --secondary: 240 5% 96%;
+  --secondary: 240 5% 95%;
     --secondary-foreground: 240 10% 15%;
 
     --muted: 240 5% 96%;
@@ -41,8 +42,8 @@ All colors MUST be HSL.
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
 
-    --border: 240 6% 90%;
-    --input: 240 6% 90%;
+  --border: 240 6% 88%; /* slightly stronger to maintain separation on softer bg */
+  --input: 240 6% 90%;
     --ring: 250 95% 60%;
 
     --radius: 0.75rem;
@@ -57,7 +58,7 @@ All colors MUST be HSL.
     --shadow-lg: 0 10px 15px -3px hsl(240 10% 15% / 0.1);
     --shadow-glow: 0 0 40px hsl(250 95% 60% / 0.3);
 
-    --sidebar-background: 0 0% 98%;
+  --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 10% 15%;
     --sidebar-primary: 250 95% 60%;
     --sidebar-primary-foreground: 0 0% 100%;
@@ -173,5 +174,33 @@ All colors MUST be HSL.
 
   .animate-pulse-slow {
     animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+
+  /* Subtle, modern scrollbar for elements that opt-in with .nice-scrollbar */
+  .nice-scrollbar {
+    /* Firefox */
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted-foreground) / 0.35) transparent;
+    /* Reduce layout shift when scrollbars appear */
+    scrollbar-gutter: stable both-edges;
+  }
+  .nice-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .nice-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .nice-scrollbar::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.35);
+    border-radius: 9999px;
+    border: 2px solid transparent; /* creates padding and blends with background */
+    background-clip: padding-box;
+  }
+  .nice-scrollbar:hover::-webkit-scrollbar-thumb {
+    background-color: hsl(var(--muted-foreground) / 0.5);
+  }
+  .nice-scrollbar::-webkit-scrollbar-thumb:active {
+    background-color: hsl(var(--primary) / 0.6);
   }
 }

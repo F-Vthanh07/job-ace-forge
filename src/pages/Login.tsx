@@ -32,7 +32,7 @@ const Login = () => {
           </div>
 
           <Button className="w-full gradient-primary shadow-glow" size="lg" asChild>
-            <Link to="/jobs">Sign In</Link>
+            <Link to="/home">Sign In</Link>
           </Button>
 
           <div className="text-center text-sm">

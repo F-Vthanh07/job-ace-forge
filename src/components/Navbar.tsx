@@ -30,7 +30,7 @@ export const Navbar = () => {
     } catch (e) {
       console.error("Logout storage cleanup failed", e);
     }
-    navigate("/login");
+  navigate("/");
   };
   
   const isAuthPage = location.pathname === "/login" || 
@@ -84,7 +84,7 @@ export const Navbar = () => {
       <div className="container mx-auto px-4">
         <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16 gap-3">
           {/* Brand */}
-          <Link to="/" className="flex items-center gap-2 group shrink-0 col-start-1 justify-self-start">
+          <Link to="/home" className="flex items-center gap-2 group shrink-0 col-start-1 justify-self-start">
              <div className="gradient-primary p-2 rounded-lg shadow-glow">
                <Sparkles className="h-5 w-5 text-primary-foreground" />
              </div>
