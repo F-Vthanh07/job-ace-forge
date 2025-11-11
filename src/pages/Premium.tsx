@@ -79,7 +79,7 @@ const Premium = () => {
               <div className="text-center mb-6">
                 <h3 className="text-2xl font-bold mb-2">Premium</h3>
                 <div className="mb-1">
-                  <span className="text-5xl font-bold">149K</span>
+                  <span className="text-5xl font-bold">699K</span>
                   <span className="text-muted-foreground"> VND/month</span>
                 </div>
                 <p className="text-sm text-muted-foreground mb-4">
