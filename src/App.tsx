@@ -10,6 +10,10 @@ import Home from "./pages/Home.tsx";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import RoleSelection from "./pages/RoleSelection";
+import BusinessChoice from "./pages/BusinessChoice";
+import JoinExistingCompany from "./pages/JoinExistingCompany";
+import RegisterNewCompany from "./pages/RegisterNewCompany";
+import AwaitingApproval from "./pages/AwaitingApproval";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
@@ -60,6 +64,10 @@ const App = () => (
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/role-selection" element={<RoleSelection />} />
+              <Route path="/business-choice" element={<BusinessChoice />} />
+              <Route path="/join-existing-company" element={<JoinExistingCompany />} />
+              <Route path="/register-new-company" element={<RegisterNewCompany />} />
+              <Route path="/awaiting-approval" element={<AwaitingApproval />} />
               <Route path="/onboarding" element={<Onboarding />} />
               
               {/* Candidate Routes */}

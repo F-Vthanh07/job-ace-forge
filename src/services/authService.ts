@@ -51,6 +51,39 @@ export interface CompanyRegisterRequest {
   captchaToken: string;
 }
 
+export interface AddressRequest {
+  street?: string;
+  cityCode: string;
+  districtCode: string;
+  wardCode: string;
+}
+
+export interface CompanyRegistrationRequest {
+  name: string;
+  description?: string;
+  website?: string;
+  logoUrl?: string;
+  industry?: string;
+  size?: number;
+  address: AddressRequest;
+  taxCode: string;
+  businessLicenseUrl: string;
+}
+
+export interface JoinCompanyRequest {
+  inviteCode: string;
+}
+
+export interface CompanyResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    companyId: string;
+    name: string;
+    status: string;
+  };
+}
+
 export interface AuthResponse {
   success: boolean;
   message: string;
@@ -138,6 +171,7 @@ class AuthService {
   }
   async register(data: RegisterRequest): Promise<AuthResponse> {
     try {
+      console.log("📤 Sending registration request:", data);
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: "POST",
         headers: {
@@ -148,7 +182,9 @@ class AuthService {
 
       // Get response text first
       const responseText = await response.text();
-      
+      console.log("📥 Response status:", response.status);
+      console.log("📥 Response text:", responseText);
+
       // Try to parse as JSON, if it fails, treat as plain text
       let result: Record<string, unknown> = {};
       try {
@@ -162,9 +198,12 @@ class AuthService {
       }
 
       if (!response.ok) {
+        // Extract detailed error message from backend
+        const errorMessage = String(result.message || result.title || responseText || "Đăng ký không thành công.");
+        console.error("❌ Registration failed:", errorMessage);
         return {
           success: false,
-          message: String(result.message) || "Đăng ký không thành công.",
+          message: errorMessage,
         };
       }
 
@@ -257,6 +296,156 @@ class AuthService {
    */
   isAuthenticated(): boolean {
     return !!this.getToken();
+  }
+
+  /**
+   * Register a new company
+   */
+  async registerCompany(
+    data: CompanyRegistrationRequest
+  ): Promise<CompanyResponse> {
+    try {
+      const token = this.getToken();
+      console.log("🏢 Company registration - Token:", token ? "Present" : "Missing");
+      console.log("🏢 Company registration - Data:", JSON.stringify(data, null, 2));
+
+      const response = await fetch(`${API_BASE_URL}/auth/company-register`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseText = await response.text();
+      console.log("🏢 Company registration - Status:", response.status);
+      console.log("🏢 Company registration - Response:", responseText);
+
+      let result: Record<string, unknown> = {};
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = {
+          success: response.ok,
+          message: responseText,
+        };
+      }
+
+      if (!response.ok) {
+        const errorMessage = String(result.message || result.title || result.errors || responseText || "Đăng ký công ty không thành công.");
+        console.error("🏢 Company registration failed:", errorMessage);
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+
+      return {
+        success: true,
+        message: String(result.message) || "Đăng ký công ty thành công.",
+        data: (result.data as CompanyResponse["data"]) || undefined,
+      };
+    } catch (error) {
+      console.error("Company registration error:", error);
+      return {
+        success: false,
+        message: "Lỗi kết nối. Vui lòng thử lại.",
+      };
+    }
+  }
+
+  /**
+   * Join an existing company with invite code
+   */
+  async joinCompanyWithInviteCode(
+    inviteCode: string
+  ): Promise<CompanyResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/join`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+        body: JSON.stringify({ inviteCode }),
+      });
+
+      const responseText = await response.text();
+      let result: Record<string, unknown> = {};
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = {
+          success: response.ok,
+          message: responseText,
+        };
+      }
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: String(result.message) || "Mã mời không hợp lệ.",
+        };
+      }
+
+      return {
+        success: true,
+        message: String(result.message) || "Đã tham gia công ty thành công.",
+        data: (result.data as CompanyResponse["data"]) || undefined,
+      };
+    } catch (error) {
+      console.error("Join company error:", error);
+      return {
+        success: false,
+        message: "Lỗi kết nối. Vui lòng thử lại.",
+      };
+    }
+  }
+
+  /**
+   * Get company approval status
+   */
+  async getCompanyApprovalStatus(): Promise<CompanyResponse> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/company/approval-status`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${this.getToken()}`,
+        },
+      });
+
+      const responseText = await response.text();
+      let result: Record<string, unknown> = {};
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = {
+          success: response.ok,
+          message: responseText,
+        };
+      }
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: String(result.message) || "Không thể lấy trạng thái.",
+        };
+      }
+
+      return {
+        success: true,
+        message: String(result.message) || "Lấy trạng thái thành công.",
+        data: (result.data as CompanyResponse["data"]) || undefined,
+      };
+    } catch (error) {
+      console.error("Get approval status error:", error);
+      return {
+        success: false,
+        message: "Lỗi kết nối. Vui lòng thử lại.",
+      };
+    }
   }
 }
 

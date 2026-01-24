@@ -25,6 +25,8 @@ const RoleSelection = () => {
     try {
       // Get signup data from sessionStorage
       const signupDataStr = sessionStorage.getItem("signupData");
+      const captchaToken = sessionStorage.getItem("signupCaptchaToken");
+
       if (!signupDataStr) {
         setError("Phiên đã hết hạn. Vui lòng đăng ký lại.");
         setTimeout(() => navigate("/signup"), 2000);
@@ -34,14 +36,27 @@ const RoleSelection = () => {
       const signupData = JSON.parse(signupDataStr);
 
       // Prepare registration data to match backend schema
+      // Backend expects: Role = "Candidate" or "Recruiter", Gender = "Male"/"Female"/"Other"
+
+      // Convert gender to proper case (male -> Male, female -> Female, other -> Other)
+      const genderValue = signupData.gender
+        ? signupData.gender.charAt(0).toUpperCase() + signupData.gender.slice(1).toLowerCase()
+        : "";
+
+      // Convert dateOfBirth to ISO format with timezone
+      const dateOfBirthISO = signupData.dateOfBirth
+        ? new Date(signupData.dateOfBirth).toISOString()
+        : "";
+
       const registerData = {
         fullName: signupData.fullName,
         email: signupData.email,
         phoneNumber: signupData.phoneNumber,
-        dateOfBirth: signupData.dateOfBirth,
-        gender: signupData.gender,
+        dateOfBirth: dateOfBirthISO,
+        gender: genderValue,
         passwordHash: signupData.password,
-        role: selectedRole,
+        role: selectedRole, // "Candidate" or "Recruiter" (uppercase first letter)
+        captchaToken: captchaToken || "",
       };
 
       console.log("Sending registration data:", registerData);
@@ -52,6 +67,7 @@ const RoleSelection = () => {
       if (response.success) {
         // Clear sessionStorage
         sessionStorage.removeItem("signupData");
+        sessionStorage.removeItem("signupCaptchaToken");
 
         // Store user info if provided
         if (response.data?.user) {
@@ -60,7 +76,7 @@ const RoleSelection = () => {
 
         // Redirect based on role
         if (selectedRole === "Recruiter") {
-          navigate("/recruiter-dashboard");
+          navigate("/business-choice");
         } else {
           navigate("/onboarding");
         }
