@@ -34,6 +34,7 @@ import RecruiterSignup from "./pages/RecruiterSignup";
 import BusinessProfile from "./pages/BusinessProfile";
 import RecruiterDashboard from "./pages/RecruiterDashboard";
 import PostJob from "./pages/PostJob";
+import EditJob from "./pages/EditJob";
 import ManageJobs from "./pages/ManageJobs";
 import RecruiterPremium from "./pages/RecruiterPremium";
 import Candidates from "./pages/Candidates";
@@ -92,6 +93,7 @@ const App = () => (
               <Route path="/business-profile" element={<BusinessProfile />} />
               <Route path="/recruiter-dashboard" element={<RecruiterDashboard />} />
               <Route path="/post-job" element={<PostJob />} />
+              <Route path="/edit-job/:jobId" element={<EditJob />} />
               <Route path="/manage-jobs" element={<ManageJobs />} />
               <Route path="/recruiter-premium" element={<RecruiterPremium />} />
               <Route path="/candidates" element={<Candidates />} />

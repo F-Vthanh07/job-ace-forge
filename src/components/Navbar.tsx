@@ -1,7 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles, User, Menu, X, Moon, Sun, Globe, LogOut } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import {
@@ -12,25 +12,36 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { authService, UserData } from "@/services/authService";
 
 export const Navbar = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [user, setUser] = useState<UserData | null>(null);
   const { theme, toggleTheme } = useTheme();
   const { setLanguage, t } = useLanguage();
-  
-  const handleLogout = () => {
-    try {
-      // clear common auth storages
-      localStorage.removeItem("token");
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("user");
-      sessionStorage.removeItem("token");
-    } catch (e) {
-      console.error("Logout storage cleanup failed", e);
+
+  // Load user data from localStorage on mount
+  useEffect(() => {
+    const userData = authService.getUser();
+    setUser(userData);
+  }, []);
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.fullName) return "U";
+    const names = user.fullName.trim().split(" ");
+    if (names.length >= 2) {
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
     }
-  navigate("/");
+    return names[0][0].toUpperCase();
+  };
+
+  const handleLogout = () => {
+    authService.logout();
+    setUser(null);
+    navigate("/");
   };
   
   const isAuthPage = location.pathname === "/login" || 
@@ -143,22 +154,25 @@ export const Navbar = () => {
                       <Button variant="ghost" size="sm" className="gap-2">
                         <Avatar className="h-6 w-6">
                           <AvatarImage src="" alt="user" />
-                          <AvatarFallback>
-                            <User className="h-4 w-4" />
+                          <AvatarFallback className="text-xs">
+                            {getUserInitials()}
                           </AvatarFallback>
                         </Avatar>
-                        <span className="hidden sm:inline">{t("common.profile")}</span>
+                        <span className="hidden sm:inline">{user?.fullName || t("common.profile")}</span>
                       </Button>
                     </HoverCardTrigger>
                     <HoverCardContent align="end" className="w-64">
                       <div className="flex items-center gap-3">
                         <Avatar>
                           <AvatarImage src="" alt="user" />
-                          <AvatarFallback>U</AvatarFallback>
+                          <AvatarFallback>{getUserInitials()}</AvatarFallback>
                         </Avatar>
                         <div className="text-sm">
-                          <div className="font-medium">{t("common.yourAccount")}</div>
-                          <div className="text-muted-foreground">user@example.com</div>
+                          <div className="font-medium">{user?.fullName || t("common.yourAccount")}</div>
+                          <div className="text-muted-foreground">{user?.email || "user@example.com"}</div>
+                          {user?.role && (
+                            <div className="text-xs text-primary capitalize">{user.role}</div>
+                          )}
                         </div>
                       </div>
                       <div className="mt-3 grid gap-2">

@@ -234,8 +234,8 @@ const RegisterNewCompany = () => {
         return;
       }
 
-      // Store company data in sessionStorage
-      sessionStorage.setItem("companyFormData", JSON.stringify(formData));
+      // Store company data in localStorage
+      localStorage.setItem("companyFormData", JSON.stringify(formData));
 
       notifySuccess({
         title: "Đăng ký thành công",
