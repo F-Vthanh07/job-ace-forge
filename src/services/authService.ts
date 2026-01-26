@@ -6,7 +6,8 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Cloudflare Turnstile Configuration
-const TURNSTILE_SITE_KEY = "0x4AAAAAACNx3IfFD1Btqrb3";
+// Use environment variable or fallback to default key
+const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAACNx3IfFD1Btqrb3";
 
 // Type definitions for Turnstile
 declare global {
