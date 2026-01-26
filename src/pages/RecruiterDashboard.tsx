@@ -2,15 +2,111 @@ import { Navbar } from "@/components/Navbar";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Users, TrendingUp, Clock, Plus } from "lucide-react";
+import { Briefcase, Users, TrendingUp, Clock, Plus, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { companyService, CompanyData } from "@/services/companyService";
+import { notifyError, notifySuccess } from "@/utils/notification";
 
 const RecruiterDashboard = () => {
+  const [companyData, setCompanyData] = useState<CompanyData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchRecruiterCompany();
+  }, []);
+
+  const fetchRecruiterCompany = async () => {
+    try {
+      setLoading(true);
+      
+      console.log("🔍 Loading company data...");
+      
+      // First try to get company data from localStorage (cached from login)
+      const cachedCompany = companyService.getCompanyFromLocalStorage();
+      if (cachedCompany) {
+        console.log("✅ Found cached company data:", cachedCompany.name);
+        setCompanyData(cachedCompany);
+        setLoading(false);
+        return;
+      }
+
+      console.log("⚠️ No cached company data, fetching from API...");
+      
+      // Get recruiter account ID from localStorage (stored during login)
+      const userDataString = localStorage.getItem("userData");
+      if (!userDataString) {
+        console.error("❌ User data not found in localStorage");
+        notifyError({
+          title: "Error",
+          description: "User data not found. Please login again."
+        });
+        setLoading(false);
+        return;
+      }
+
+      const userData = JSON.parse(userDataString);
+      const recruiterId = userData.id;
+
+      if (!recruiterId) {
+        console.error("❌ Recruiter ID not found in user data");
+        notifyError({
+          title: "Error",
+          description: "Invalid user data. Please login again."
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log("📤 Fetching company for recruiter ID:", recruiterId);
+
+      // Call API to get company by recruiter ID
+      const response = await companyService.getCompanyByRecruiterId(recruiterId);
+
+      if (response.success && response.data) {
+        console.log("✅ Company data loaded:", response.data.name);
+        setCompanyData(response.data);
+        notifySuccess({
+          title: "Success",
+          description: `Welcome to ${response.data.name}!`
+        });
+      } else {
+        console.error("❌ Failed to load company:", response.message);
+        notifyError({
+          title: "Error",
+          description: response.message || "Failed to load company data"
+        });
+      }
+    } catch (error) {
+      console.error("❌ Error fetching company:", error);
+      notifyError({
+        title: "Error",
+        description: "Failed to load company information"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const recentApplications = [
     { name: "John Doe", role: "Senior Frontend Developer", score: 92, time: "2 hours ago" },
     { name: "Jane Smith", role: "Full Stack Engineer", score: 88, time: "5 hours ago" },
     { name: "Mike Johnson", role: "React Developer", score: 85, time: "1 day ago" },
   ];
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading company information...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -20,7 +116,23 @@ const RecruiterDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-4xl font-bold mb-2">Recruitment Dashboard</h1>
-            <p className="text-muted-foreground">TechCorp Vietnam</p>
+            <p className="text-muted-foreground">
+              {companyData?.name || "TechCorp Vietnam"}
+            </p>
+            {companyData && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                  companyData.verificationStatus === "Verified" 
+                    ? "bg-success/10 text-success" 
+                    : "bg-warning/10 text-warning"
+                }`}>
+                  {companyData.verificationStatus}
+                </span>
+                <span className="text-sm text-muted-foreground">
+                  {companyData.industry}
+                </span>
+              </div>
+            )}
           </div>
           <Button className="gradient-primary shadow-glow" size="lg" asChild>
             <Link to="/post-job">

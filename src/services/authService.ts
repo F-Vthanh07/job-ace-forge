@@ -85,16 +85,25 @@ export interface CompanyResponse {
   };
 }
 
+export interface UserData {
+  id: string;
+  fullName: string;
+  email: string;
+  phoneNumber: string;
+  dateOfBirth: string;
+  gender: string;
+  role: string;
+  createTime: string;
+  updateTime: string;
+}
+
 export interface AuthResponse {
   success: boolean;
   message: string;
   data?: {
     token: string;
-    user: {
-      id: string;
-      email: string;
-      fullName: string;
-    };
+    accountId: string;
+    user: UserData;
   };
 }
 
@@ -244,36 +253,99 @@ class AuthService {
 
       // Get response text first
       const responseText = await response.text();
-
-      // Try to parse as JSON, if it fails, treat as plain text
-      let result: Record<string, unknown> = {};
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        // If response is plain text or JWT token, wrap it
-        result = {
-          success: response.ok,
-          message: responseText,
-          data: response.ok ? { token: responseText } : undefined,
-        };
-      }
+      console.log("📥 Login response:", responseText);
 
       if (!response.ok) {
+        // Try to parse error message
+        let errorMessage = "Đăng nhập không thành công.";
+        try {
+          const errorResult = JSON.parse(responseText);
+          errorMessage = String(errorResult.message || errorResult.title || responseText);
+        } catch {
+          errorMessage = responseText || errorMessage;
+        }
         return {
           success: false,
-          message: String(result.message) || "Đăng nhập không thành công.",
+          message: errorMessage,
         };
       }
 
-      const resultData = result.data as Record<string, unknown> | undefined;
-      if (resultData && typeof resultData === "object" && "token" in resultData) {
-        localStorage.setItem("authToken", String(resultData.token));
+      // Parse response - format: "Account Id :uuid token: jwt"
+      // Example: "Account Id :6a829265-c93d-42da-b931-fd1d0a2ff1bf token: eyJhbGci..."
+      let accountId = "";
+      let token = "";
+
+      // Try to extract Account Id and token from the response text
+      const accountIdMatch = responseText.match(/Account Id\s*:\s*([a-f0-9-]+)/i);
+      const tokenMatch = responseText.match(/token:\s*(\S+)/i);
+
+      if (accountIdMatch) {
+        accountId = accountIdMatch[1];
+      }
+      if (tokenMatch) {
+        token = tokenMatch[1];
+      }
+
+      console.log("📥 Parsed Account Id:", accountId);
+      console.log("📥 Parsed Token:", token ? "✅ Present" : "❌ Missing");
+
+      // Save token to localStorage
+      if (token) {
+        localStorage.setItem("authToken", token);
+        console.log("✅ Token saved to localStorage");
+      }
+      if (accountId) {
+        localStorage.setItem("accountId", accountId);
+        console.log("✅ Account Id saved to localStorage");
+      }
+
+      // Fetch user data using Account Id
+      let userData: UserData | undefined;
+      if (accountId) {
+        console.log("📤 Fetching user data for Account Id:", accountId);
+        userData = await this.getUserById(accountId);
+        if (userData) {
+          localStorage.setItem("userData", JSON.stringify(userData));
+          console.log("✅ User data saved to localStorage:", userData);
+
+          // If user is a Recruiter, fetch their company data
+          if (userData.role === "Recruiter") {
+            console.log("👔 User is a Recruiter, fetching company data...");
+            try {
+              // Dynamically import companyService to avoid circular dependency
+              const { companyService } = await import("./companyService");
+              const companyResponse = await companyService.getCompanyByRecruiterId(accountId);
+              
+              if (companyResponse.success && companyResponse.data) {
+                console.log("✅ Company data loaded for recruiter:", companyResponse.data.name);
+              } else {
+                console.warn("⚠️ Failed to load company data:", companyResponse.message);
+              }
+            } catch (companyError) {
+              console.error("❌ Error fetching company data:", companyError);
+            }
+          }
+        }
       }
 
       return {
         success: true,
-        message: String(result.message) || "Đăng nhập thành công.",
-        data: (resultData as AuthResponse['data']) || undefined,
+        message: "Đăng nhập thành công.",
+        data: {
+          token,
+          accountId,
+          user: userData || {
+            id: accountId,
+            fullName: "",
+            email: data.email,
+            phoneNumber: "",
+            dateOfBirth: "",
+            gender: "",
+            role: "",
+            createTime: "",
+            updateTime: "",
+          },
+        },
       };
     } catch (error) {
       console.error("Login error:", error);
@@ -285,11 +357,53 @@ class AuthService {
   }
 
   /**
-   * Logout user
+   * Get user data by Account Id
+   */
+  async getUserById(accountId: string): Promise<UserData | undefined> {
+    try {
+      const response = await fetch(`${API_BASE_URL}/User/Get_User_By_Id/${accountId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("❌ Failed to fetch user data:", response.status);
+        return undefined;
+      }
+
+      const userData = await response.json();
+      console.log("📥 User data fetched:", userData);
+
+      return userData as UserData;
+    } catch (error) {
+      console.error("❌ Error fetching user data:", error);
+      return undefined;
+    }
+  }
+
+  /**
+   * Logout user - clear all user data from localStorage
    */
   logout(): void {
     localStorage.removeItem("authToken");
+    localStorage.removeItem("accountId");
     localStorage.removeItem("user");
+    console.log("✅ User logged out, all data cleared from localStorage");
+  }
+
+  /**
+   * Get stored user data
+   */
+  getUser(): UserData | null {
+    const userStr = localStorage.getItem("user");
+    if (!userStr) return null;
+    try {
+      return JSON.parse(userStr) as UserData;
+    } catch {
+      return null;
+    }
   }
 
   /**

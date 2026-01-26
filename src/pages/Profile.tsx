@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -6,9 +7,51 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap } from "lucide-react";
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Calendar } from "lucide-react";
+import { authService, UserData } from "@/services/authService";
 
 const Profile = () => {
+  const [user, setUser] = useState<UserData | null>(null);
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    phoneNumber: "",
+    dateOfBirth: "",
+    gender: "",
+  });
+
+  useEffect(() => {
+    const userData = authService.getUser();
+    if (userData) {
+      setUser(userData);
+      setFormData({
+        fullName: userData.fullName || "",
+        email: userData.email || "",
+        phoneNumber: userData.phoneNumber || "",
+        dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split("T")[0] : "",
+        gender: userData.gender || "",
+      });
+    }
+  }, []);
+
+  // Get user initials for avatar
+  const getUserInitials = () => {
+    if (!user?.fullName) return "U";
+    const names = user.fullName.trim().split(" ");
+    if (names.length >= 2) {
+      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+    }
+    return names[0][0].toUpperCase();
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [id]: value,
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
@@ -20,12 +63,13 @@ const Profile = () => {
             <div className="flex items-center gap-6">
               <Avatar className="h-24 w-24 border-4 border-primary">
                 <AvatarFallback className="text-2xl font-bold gradient-primary text-white">
-                  JD
+                  {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1">
-                <h1 className="text-3xl font-bold mb-2">John Doe</h1>
-                <p className="text-muted-foreground mb-3">Senior Frontend Developer</p>
+                <h1 className="text-3xl font-bold mb-2">{user?.fullName || "User"}</h1>
+                <p className="text-muted-foreground mb-1">{user?.email}</p>
+                <p className="text-sm text-primary capitalize mb-3">{user?.role || "Candidate"}</p>
                 <Button className="gradient-primary">Edit Profile Photo</Button>
               </div>
             </div>
@@ -43,20 +87,16 @@ const Profile = () => {
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-6">Personal Information</h2>
                 <div className="space-y-4">
-                  <div className="grid md:grid-cols-2 gap-4">
-                    <div>
-                      <Label htmlFor="firstName">First Name</Label>
-                      <div className="relative mt-1">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input id="firstName" defaultValue="John" className="pl-10" />
-                      </div>
-                    </div>
-                    <div>
-                      <Label htmlFor="lastName">Last Name</Label>
-                      <div className="relative mt-1">
-                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                        <Input id="lastName" defaultValue="Doe" className="pl-10" />
-                      </div>
+                  <div>
+                    <Label htmlFor="fullName">Full Name</Label>
+                    <div className="relative mt-1">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="fullName"
+                        value={formData.fullName}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                      />
                     </div>
                   </div>
 
@@ -64,15 +104,57 @@ const Profile = () => {
                     <Label htmlFor="email">Email</Label>
                     <div className="relative mt-1">
                       <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input id="email" type="email" defaultValue="john.doe@example.com" className="pl-10" />
+                      <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                        disabled
+                      />
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">Email cannot be changed</p>
                   </div>
 
                   <div>
-                    <Label htmlFor="phone">Phone</Label>
+                    <Label htmlFor="phoneNumber">Phone</Label>
                     <div className="relative mt-1">
                       <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input id="phone" defaultValue="+84 123 456 789" className="pl-10" />
+                      <Input
+                        id="phoneNumber"
+                        value={formData.phoneNumber}
+                        onChange={handleInputChange}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="dateOfBirth">Date of Birth</Label>
+                      <div className="relative mt-1">
+                        <Calendar className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="dateOfBirth"
+                          type="date"
+                          value={formData.dateOfBirth}
+                          onChange={handleInputChange}
+                          className="pl-10"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <Label htmlFor="gender">Gender</Label>
+                      <div className="relative mt-1">
+                        <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                        <Input
+                          id="gender"
+                          value={formData.gender}
+                          onChange={handleInputChange}
+                          className="pl-10"
+                          disabled
+                        />
+                      </div>
                     </div>
                   </div>
 
@@ -80,13 +162,13 @@ const Profile = () => {
                     <Label htmlFor="location">Location</Label>
                     <div className="relative mt-1">
                       <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input id="location" defaultValue="Ho Chi Minh City, Vietnam" className="pl-10" />
+                      <Input id="location" defaultValue="" placeholder="Ho Chi Minh City, Vietnam" className="pl-10" />
                     </div>
                   </div>
 
                   <div>
                     <Label htmlFor="bio">Bio</Label>
-                    <Textarea id="bio" rows={4} defaultValue="Passionate frontend developer with 5+ years of experience..." className="mt-1" />
+                    <Textarea id="bio" rows={4} defaultValue="" placeholder="Tell us about yourself..." className="mt-1" />
                   </div>
 
                   <Button className="gradient-primary">Save Changes</Button>

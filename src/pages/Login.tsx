@@ -75,8 +75,19 @@ const Login = () => {
       if (result.success && result.data?.token) {
         console.log("✅ Login successful!");
         notifySuccess("Đăng nhập thành công!");
-        // Redirect to dashboard immediately
-        navigate("/dashboard");
+
+        // Navigate based on user role
+        const userRole = result.data.user?.role?.toLowerCase();
+        console.log("👤 User role:", userRole);
+
+        if (userRole === "admin") {
+          navigate("/admin");
+        } else if (userRole === "recruiter") {
+          navigate("/recruiter-dashboard");
+        } else {
+          // Default to candidate dashboard
+          navigate("/dashboard");
+        }
       } else {
         console.error("❌ Login failed:", result.message);
         notifyError(result.message);
