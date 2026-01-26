@@ -4,39 +4,38 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, Loader2, AlertCircle } from "lucide-react";
+import { Building2, Loader2 } from "lucide-react";
+import { notifyError, notifySuccess, notifyWarning } from "@/utils/notification";
 
 const JoinExistingCompany = () => {
   const navigate = useNavigate();
   const [inviteCode, setInviteCode] = useState("");
-  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   const handleJoinCompany = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
       // Validate invite code
       if (!inviteCode.trim()) {
-        setError("Vui lòng nhập mã mời.");
+        notifyWarning("Vui lòng nhập mã mời.");
         setLoading(false);
         return;
       }
 
       // TODO: Call API to verify invite code and join company
       // const response = await companyService.joinCompanyWithInviteCode(inviteCode);
-      
+
       // For now, navigate to awaiting approval
       // In production, store company info and verify the code with backend
       sessionStorage.setItem("inviteCode", inviteCode);
-      
+
+      notifySuccess("Đã gửi yêu cầu tham gia công ty!");
       navigate("/awaiting-approval");
     } catch (err) {
       console.error("Error joining company:", err);
-      setError("Lỗi kết nối. Vui lòng thử lại.");
+      notifyError(err);
     } finally {
       setLoading(false);
     }
@@ -57,13 +56,6 @@ const JoinExistingCompany = () => {
         </div>
 
         <form className="space-y-6" onSubmit={handleJoinCompany}>
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           <div>
             <Label htmlFor="inviteCode">Invite Code *</Label>
             <Input
@@ -71,10 +63,7 @@ const JoinExistingCompany = () => {
               placeholder="Enter your invite code"
               className="mt-1 font-mono text-center text-lg tracking-widest"
               value={inviteCode}
-              onChange={(e) => {
-                setInviteCode(e.target.value.toUpperCase());
-                setError("");
-              }}
+              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
               disabled={loading}
               required
             />

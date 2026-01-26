@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { authService } from "@/services/authService";
+import { notifyWarning } from "@/utils/notification";
 
 interface SignupData {
   fullName: string;
@@ -28,7 +28,6 @@ const Signup = () => {
     gender: "",
     password: "",
   });
-  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -51,26 +50,24 @@ const Signup = () => {
       ...prev,
       [id]: value,
     }));
-    setError(""); // Clear error on input change
   };
 
   const handleNext = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
-    
+
     try {
       // Get Turnstile token
       const captchaToken = authService.getTurnstileToken();
       if (!captchaToken) {
-        setError("Vui lòng hoàn thành xác thực Turnstile.");
+        notifyWarning("Vui lòng hoàn thành xác thực bảo mật.");
         setLoading(false);
         return;
       }
 
       // Validate required fields
       if (!formData.fullName || !formData.email || !formData.phoneNumber || !formData.password || !formData.dateOfBirth) {
-        setError("Vui lòng điền tất cả các trường bắt buộc.");
+        notifyWarning("Vui lòng điền tất cả các trường bắt buộc.");
         authService.resetTurnstile();
         setLoading(false);
         return;
@@ -79,7 +76,7 @@ const Signup = () => {
       // Validate email format
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(formData.email)) {
-        setError("Email không hợp lệ.");
+        notifyWarning("Email không hợp lệ. Vui lòng kiểm tra lại.");
         authService.resetTurnstile();
         setLoading(false);
         return;
@@ -87,7 +84,7 @@ const Signup = () => {
 
       // Validate password length
       if (formData.password.length < 6) {
-        setError("Mật khẩu phải có ít nhất 6 ký tự.");
+        notifyWarning("Mật khẩu phải có ít nhất 6 ký tự.");
         authService.resetTurnstile();
         setLoading(false);
         return;
@@ -119,13 +116,6 @@ const Signup = () => {
         </div>
 
         <form className="space-y-4" onSubmit={handleNext}>
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-          
           <div>
             <Label htmlFor="fullName">Full Name *</Label>
             <Input

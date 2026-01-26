@@ -172,7 +172,7 @@ class AuthService {
   async register(data: RegisterRequest): Promise<AuthResponse> {
     try {
       console.log("📤 Sending registration request:", data);
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
+      const response = await fetch(`${API_BASE_URL}/Auth/register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -207,10 +207,17 @@ class AuthService {
         };
       }
 
+      // Save token if returned by backend
+      const resultData = result.data as Record<string, unknown> | undefined;
+      if (resultData && typeof resultData === "object" && "token" in resultData && typeof resultData.token === "string") {
+        localStorage.setItem("authToken", resultData.token);
+        console.log("✅ Token saved after registration");
+      }
+
       return {
         success: true,
         message: String(result.message) || "Đăng ký thành công.",
-        data: (result.data as AuthResponse['data']) || undefined,
+        data: (resultData as AuthResponse['data']) || undefined,
       };
     } catch (error) {
       console.error("Registration error:", error);
@@ -226,7 +233,7 @@ class AuthService {
    */
   async login(data: LoginRequest): Promise<AuthResponse> {
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
+      const response = await fetch(`${API_BASE_URL}/Auth/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -309,7 +316,7 @@ class AuthService {
       console.log("🏢 Company registration - Token:", token ? "Present" : "Missing");
       console.log("🏢 Company registration - Data:", JSON.stringify(data, null, 2));
 
-      const response = await fetch(`${API_BASE_URL}/auth/company-register`, {
+      const response = await fetch(`${API_BASE_URL}/Auth/company-register`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

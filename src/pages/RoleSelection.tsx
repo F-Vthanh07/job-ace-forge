@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Briefcase, User, Loader } from "lucide-react";
 import { authService } from "@/services/authService";
+import { notifyError, notifySuccess, notifyWarning } from "@/utils/notification";
 
 type Role = "Candidate" | "Recruiter" | null;
 
@@ -11,16 +12,14 @@ const RoleSelection = () => {
   const navigate = useNavigate();
   const [selectedRole, setSelectedRole] = useState<Role>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string>("");
 
   const handleConfirm = async () => {
     if (!selectedRole) {
-      setError("Vui lòng chọn mục đích của bạn.");
+      notifyWarning("Vui lòng chọn mục đích của bạn.");
       return;
     }
 
     setIsLoading(true);
-    setError("");
 
     try {
       // Get signup data from sessionStorage
@@ -28,7 +27,7 @@ const RoleSelection = () => {
       const captchaToken = sessionStorage.getItem("signupCaptchaToken");
 
       if (!signupDataStr) {
-        setError("Phiên đã hết hạn. Vui lòng đăng ký lại.");
+        notifyWarning("Phiên đã hết hạn. Vui lòng đăng ký lại.");
         setTimeout(() => navigate("/signup"), 2000);
         return;
       }
@@ -64,28 +63,51 @@ const RoleSelection = () => {
       // Call API to register
       const response = await authService.register(registerData);
 
-      if (response.success) {
-        // Clear sessionStorage
+      if (!response.success) {
+        notifyError(response.message);
+        setIsLoading(false);
+        return; // Stop here - don't proceed to next step
+      }
+
+      // Auto login after successful registration
+      console.log("📤 Auto login after registration...");
+      const loginResponse = await authService.login({
+        email: signupData.email,
+        passwordHash: signupData.password,
+        captchaToken: captchaToken || "",
+      });
+
+      if (!loginResponse.success || !loginResponse.data?.token) {
+        // Registration succeeded but auto-login failed - redirect to login page
+        notifySuccess("Đăng ký thành công! Vui lòng đăng nhập để tiếp tục.");
         sessionStorage.removeItem("signupData");
         sessionStorage.removeItem("signupCaptchaToken");
+        navigate("/login");
+        return;
+      }
 
-        // Store user info if provided
-        if (response.data?.user) {
-          localStorage.setItem("user", JSON.stringify(response.data.user));
-        }
+      console.log("✅ Auto login successful, token saved");
 
-        // Redirect based on role
-        if (selectedRole === "Recruiter") {
-          navigate("/business-choice");
-        } else {
-          navigate("/onboarding");
-        }
+      // Clear sessionStorage
+      sessionStorage.removeItem("signupData");
+      sessionStorage.removeItem("signupCaptchaToken");
+
+      // Store user info if provided
+      if (loginResponse.data?.user) {
+        localStorage.setItem("user", JSON.stringify(loginResponse.data.user));
+      }
+
+      notifySuccess("Đăng ký tài khoản thành công!");
+
+      // Redirect based on role
+      if (selectedRole === "Recruiter") {
+        navigate("/business-choice");
       } else {
-        setError(response.message || "Đăng ký không thành công. Vui lòng thử lại.");
+        navigate("/onboarding");
       }
     } catch (err) {
       console.error("Error creating account:", err);
-      setError("Lỗi kết nối. Vui lòng thử lại.");
+      notifyError(err);
     } finally {
       setIsLoading(false);
     }
@@ -172,11 +194,6 @@ const RoleSelection = () => {
         </div>
 
         <div className="flex flex-col gap-4">
-          {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-md text-red-600 text-sm">
-              {error}
-            </div>
-          )}
           <div className="flex gap-4">
             <Button
               variant="outline"

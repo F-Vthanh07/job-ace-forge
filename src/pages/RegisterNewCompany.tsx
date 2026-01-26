@@ -5,8 +5,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Building2, Loader2, AlertCircle } from "lucide-react";
+import { Building2, Loader2 } from "lucide-react";
+import { notifyError, notifySuccess, notifyWarning } from "@/utils/notification";
 import {
   Select,
   SelectContent,
@@ -52,12 +52,12 @@ const INDUSTRIES = [
 ];
 
 const COMPANY_SIZES = [
-  "1-10",
-  "11-50",
-  "51-100",
-  "101-500",
-  "501-1000",
-  "1000+",
+  { label: "1-10 employees", value: 10 },
+  { label: "11-50 employees", value: 50 },
+  { label: "51-200 employees", value: 200 },
+  { label: "201-500 employees", value: 500 },
+  { label: "501-1000 employees", value: 1000 },
+  { label: "1000+ employees", value: 5000 },
 ];
 
 const RegisterNewCompany = () => {
@@ -76,7 +76,6 @@ const RegisterNewCompany = () => {
     taxCode: "",
     businessLicenseUrl: "",
   });
-  const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState(false);
 
   // State for address data
@@ -96,7 +95,7 @@ const RegisterNewCompany = () => {
         setCities(citiesData);
       } catch (error) {
         console.error("Error loading cities:", error);
-        setError("Không thể tải danh sách thành phố.");
+        notifyError("Không thể tải danh sách thành phố.");
       } finally {
         setLoadingCities(false);
       }
@@ -121,7 +120,7 @@ const RegisterNewCompany = () => {
         setDistricts(districtsData);
       } catch (error) {
         console.error("Error loading districts:", error);
-        setError("Không thể tải danh sách quận/huyện.");
+        notifyError("Không thể tải danh sách quận/huyện.");
       } finally {
         setLoadingDistricts(false);
       }
@@ -146,7 +145,7 @@ const RegisterNewCompany = () => {
         setWards(wardsData);
       } catch (error) {
         console.error("Error loading wards:", error);
-        setError("Không thể tải danh sách phường/xã.");
+        notifyError("Không thể tải danh sách phường/xã.");
       } finally {
         setLoadingWards(false);
       }
@@ -163,7 +162,6 @@ const RegisterNewCompany = () => {
       ...prev,
       [id]: value,
     }));
-    setError("");
   };
 
   const handleSelectChange = (field: string, value: string) => {
@@ -185,14 +183,11 @@ const RegisterNewCompany = () => {
         wardCode: "",
       }));
     }
-
-    setError("");
   };
 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
     setLoading(true);
 
     try {
@@ -205,27 +200,19 @@ const RegisterNewCompany = () => {
         !formData.districtCode ||
         !formData.wardCode
       ) {
-        setError("Vui lòng điền tất cả các trường bắt buộc.");
+        notifyWarning("Vui lòng điền tất cả các trường bắt buộc.");
         setLoading(false);
         return;
       }
 
       // Prepare request data - match backend CompanyRegisterRequest schema
-      // Parse size from string like "1-10" to number (take first number)
-      let sizeNumber = 0;
-      if (formData.size) {
-        const match = formData.size.match(/\d+/);
-        sizeNumber = match ? parseInt(match[0]) : 0;
-      }
-
-      // ASP.NET Core default uses camelCase for JSON serialization
       const requestData = {
         name: formData.name,
         description: formData.description || "",
         website: formData.website || "",
         logoUrl: formData.logoUrl || "",
         industry: formData.industry || "",
-        size: sizeNumber,
+        size: formData.size ? parseInt(formData.size) : 0,
         address: {
           street: formData.street || "",
           cityCode: formData.cityCode,
@@ -242,7 +229,7 @@ const RegisterNewCompany = () => {
       const response = await authService.registerCompany(requestData);
 
       if (!response.success) {
-        setError(response.message);
+        notifyError(response.message);
         setLoading(false);
         return;
       }
@@ -250,11 +237,16 @@ const RegisterNewCompany = () => {
       // Store company data in sessionStorage
       sessionStorage.setItem("companyFormData", JSON.stringify(formData));
 
+      notifySuccess({
+        title: "Đăng ký thành công",
+        description: "Đơn đăng ký công ty của bạn đã được gửi và đang chờ phê duyệt.",
+      });
+
       // Navigate to awaiting approval page
       navigate("/awaiting-approval");
     } catch (err) {
       console.error("Error registering company:", err);
-      setError("Lỗi kết nối. Vui lòng thử lại.");
+      notifyError(err);
     } finally {
       setLoading(false);
     }
@@ -275,13 +267,6 @@ const RegisterNewCompany = () => {
         </div>
 
         <form className="space-y-6" onSubmit={handleSubmit}>
-          {error && (
-            <Alert variant="destructive">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
-
           {/* Company Information Section */}
           <div className="space-y-4">
             <h3 className="font-semibold text-lg">Company Information</h3>
@@ -359,8 +344,8 @@ const RegisterNewCompany = () => {
                   </SelectTrigger>
                   <SelectContent>
                     {COMPANY_SIZES.map((s) => (
-                      <SelectItem key={s} value={s}>
-                        {s} employees
+                      <SelectItem key={s.value} value={String(s.value)}>
+                        {s.label}
                       </SelectItem>
                     ))}
                   </SelectContent>

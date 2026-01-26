@@ -4,17 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Sparkles, AlertCircle, Loader2 } from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import { authService } from "@/services/authService";
+import { notifyError, notifySuccess, notifyWarning } from "@/utils/notification";
 
 const Login = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const turnstileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,8 +36,6 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
     setLoading(true);
 
     try {
@@ -50,17 +46,15 @@ const Login = () => {
       console.log("🔐 CAPTCHA Token:", captchaToken ? "✅ Exists" : "❌ Missing");
       
       if (!captchaToken) {
-        const errorMsg = "Vui lòng hoàn thành xác thực Turnstile.";
-        console.error("❌ " + errorMsg);
-        setError(errorMsg);
+        console.error("❌ Missing captcha token");
+        notifyWarning("Vui lòng hoàn thành xác thực bảo mật.");
         setLoading(false);
         return;
       }
 
       if (!email || !password) {
-        const errorMsg = "Vui lòng nhập email và mật khẩu.";
-        console.error("❌ " + errorMsg);
-        setError(errorMsg);
+        console.error("❌ Missing email or password");
+        notifyWarning("Vui lòng nhập email và mật khẩu.");
         setLoading(false);
         return;
       }
@@ -80,17 +74,17 @@ const Login = () => {
 
       if (result.success && result.data?.token) {
         console.log("✅ Login successful!");
+        notifySuccess("Đăng nhập thành công!");
         // Redirect to dashboard immediately
         navigate("/dashboard");
       } else {
-        const errorMsg = result.message || "Đăng nhập không thành công. Vui lòng thử lại.";
-        console.error("❌ " + errorMsg);
-        setError(errorMsg);
+        console.error("❌ Login failed:", result.message);
+        notifyError(result.message);
         authService.resetTurnstile();
       }
     } catch (err) {
       console.error("❌ Login error:", err);
-      setError("Lỗi kết nối. Vui lòng thử lại.");
+      notifyError(err);
       authService.resetTurnstile();
     } finally {
       setLoading(false);
@@ -110,20 +104,6 @@ const Login = () => {
           <h1 className="text-3xl font-bold mb-2">Welcome Back</h1>
           <p className="text-muted-foreground">Sign in to continue your journey</p>
         </div>
-
-        {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-
-        {success && (
-          <Alert className="mb-4 border-green-500 bg-green-50">
-            <AlertCircle className="h-4 w-4 text-green-600" />
-            <AlertDescription className="text-green-800">{success}</AlertDescription>
-          </Alert>
-        )}
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
