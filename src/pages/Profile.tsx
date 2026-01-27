@@ -7,8 +7,9 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Calendar } from "lucide-react";
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, ArrowRight } from "lucide-react";
 import { authService, UserData } from "@/services/authService";
+import { Link } from "react-router-dom";
 
 const Profile = () => {
   const [user, setUser] = useState<UserData | null>(null);
@@ -179,6 +180,28 @@ const Profile = () => {
             <TabsContent value="professional">
               <Card className="p-6">
                 <h2 className="text-2xl font-bold mb-6">Professional Details</h2>
+                
+                {/* CV Manager Section */}
+                <div className="mb-6 p-4 border rounded-lg bg-accent/50">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="gradient-primary p-2 rounded-lg">
+                        <FileText className="h-5 w-5 text-white" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold">My CVs</h3>
+                        <p className="text-sm text-muted-foreground">Manage and create your CVs</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" asChild>
+                      <Link to="/cv-manager">
+                        View All CVs
+                        <ArrowRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="space-y-4">
                   <div>
                     <Label htmlFor="currentRole">Current Role</Label>

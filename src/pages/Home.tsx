@@ -4,11 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { type CarouselApi, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon } from "lucide-react";
+import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useEffect, useState } from "react";
 import { translations } from "@/locales/translations";
 import { Navbar } from "@/components/Navbar";
+import { companyService, CompanyData } from "@/services/companyService";
 
 const Home = () => {
   const { t: tr, language } = useLanguage();
@@ -76,17 +77,31 @@ const Home = () => {
     "Healthcare",
   ] as const;
 
-  const companies = [
-    { id: "c1", name: "FPT Telecom", city: "Hồ Chí Minh", logo: "/logos/FPT_logo_2010.svg.png", role: "Fullstack Developer", salary: "Thỏa thuận" },
-    { id: "c2", name: "Athena Hub", city: "Hồ Chí Minh", logo: "/logos/Athena-Hub.png", role: "Senior Frontend Developer", salary: "30 - 45 triệu" },
-    { id: "c3", name: "Persol Career", city: "Hồ Chí Minh", logo: "/logos/Persol-Career.png", role: "Middle Back End Developer (Java)", salary: "750 - 1,900 USD" },
-    { id: "c4", name: "ADFLY Việt Nam", city: "Hồ Chí Minh", logo: "/logos/ADFLY.png", role: "Nhân Viên Kinh Doanh / Sales", salary: "Thỏa thuận" },
-    { id: "c5", name: "EDUVATOR", city: "Hà Nội & 2 nơi khác", logo: "/logos/EDUVATOR.png", role: "Tư Vấn Khóa Học", salary: "15 - 20 triệu" },
-    { id: "c6", name: "TGP Corp", city: "Hồ Chí Minh", logo: "/logos/TGP.png", role: "Nhân Viên Văn Phòng", salary: "7.1 - 8.5 triệu" },
-    { id: "c7", name: "Retail FTB", city: "Hồ Chí Minh", logo: "/logos/FTB.png", role: "Bán Hàng Ngành Trang Sức (Nữ)", salary: "12 - 18 triệu" },
-    { id: "c8", name: "CMC Corp", city: "Hồ Chí Minh", logo: "/logos/CMC-Corp-logo.png", role: "Kỹ Sư Cơ Khí / Thiết Kế Cơ Khí", salary: "12 - 17 triệu" },
-    { id: "c9", name: "Đảo Hải Sản", city: "Hồ Chí Minh", logo: "/logos/DAOHAISAN.png", role: "Kế Toán Trưởng (FMCG / F&B)", salary: "25 - 35 triệu" },
-  ] as const;
+  const [companies, setCompanies] = useState<CompanyData[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+
+  // Fetch verified companies from API
+  useEffect(() => {
+    const fetchVerifiedCompanies = async () => {
+      try {
+        setLoadingCompanies(true);
+        const response = await companyService.getAllCompanies();
+        if (response.success && response.data) {
+          // Filter only verified companies
+          const verifiedCompanies = response.data.filter(
+            (company: CompanyData) => company.verificationStatus === "Verified"
+          );
+          setCompanies(verifiedCompanies);
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      } finally {
+        setLoadingCompanies(false);
+      }
+    };
+
+    fetchVerifiedCompanies();
+  }, []);
 
   const features = [
     { id: "feature-cv", icon: Target, title: tr("welcome.cvBuilder"), desc: tr("welcome.cvBuilderDesc"), to: "/cv-builder", cta: tr("onboarding.cvCta") },
@@ -328,32 +343,44 @@ const Home = () => {
           <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("partners.title")}</h2>
           <p className="text-muted-foreground">{tr("partners.subtitle")}</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
-          {companies.map((co, idx) => (
-            <Card key={co.id} className="p-4 hover:shadow-lg transition-all rounded-xl border border-border/60 bg-card">
-              <div className="flex items-start gap-3">
-                <div className={`h-12 w-12 rounded-lg bg-gradient-to-br ${brandGradients[idx % brandGradients.length]} ring-1 ring-border overflow-hidden flex items-center justify-center` }>
-                  {co.logo ? (
-                    <img src={co.logo} alt={`${co.name} logo`} className="h-full w-full object-contain p-1" loading="lazy" />
-                  ) : (
-                    <span className="font-bold text-foreground/90">{getInitials(co.name)}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{co.role}</h3>
-                  <div className="text-xs text-muted-foreground truncate">{co.name}</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge variant="secondary">{co.salary}</Badge>
-                    <Badge variant="outline">{co.city}</Badge>
+        {loadingCompanies ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : companies.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
+            {companies.map((co, idx) => (
+              <Card key={co.id} className="p-4 hover:shadow-lg transition-all rounded-xl border border-border/60 bg-card">
+                <div className="flex items-start gap-3">
+                  <div className={`h-12 w-12 rounded-lg bg-gradient-to-br ${brandGradients[idx % brandGradients.length]} ring-1 ring-border overflow-hidden flex items-center justify-center` }>
+                    {co.logoUrl ? (
+                      <img src={co.logoUrl} alt={`${co.name} logo`} className="h-full w-full object-contain p-1" loading="lazy" />
+                    ) : (
+                      <span className="font-bold text-foreground/90">{getInitials(co.name)}</span>
+                    )}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{co.name}</h3>
+                    <div className="text-xs text-muted-foreground truncate">{co.industry}</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge variant="secondary">{co.size} employees</Badge>
+                      {co.address?.cityName && (
+                        <Badge variant="outline">{co.address.cityName}</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to="/jobs">{tr("common.apply")}</Link>
+                  </Button>
                 </div>
-                <Button size="sm" variant="outline" asChild>
-                  <Link to="/jobs">{tr("common.apply")}</Link>
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No verified companies available at the moment.</p>
+          </div>
+        )}
         </div>
       </section>
 
