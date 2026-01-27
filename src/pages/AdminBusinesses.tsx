@@ -75,9 +75,9 @@ const AdminBusinesses = () => {
   const handleVerify = async () => {
     if (!selectedCompany) return;
 
-    // Validate rejection message if status is Rejected
-    if (verificationStatus === "Rejected" && !rejectionMessage.trim()) {
-      notifyError("Please provide a rejection message");
+    // Validate message is required for all verification statuses
+    if (!rejectionMessage.trim()) {
+      notifyError("Please provide a message");
       return;
     }
 
@@ -315,22 +315,28 @@ const AdminBusinesses = () => {
                 </Select>
               </div>
 
-              {verificationStatus === "Rejected" && (
-                <div className="space-y-2">
-                  <Label htmlFor="rejection-message">Rejection Message *</Label>
-                  <Textarea
-                    id="rejection-message"
-                    placeholder="Please provide a reason for rejection..."
-                    value={rejectionMessage}
-                    onChange={(e) => setRejectionMessage(e.target.value)}
-                    rows={4}
-                    className="resize-none"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    This message will be sent to the company as notification
-                  </p>
-                </div>
-              )}
+              <div className="space-y-2">
+                <Label htmlFor="rejection-message">
+                  Message *
+                </Label>
+                <Textarea
+                  id="rejection-message"
+                  placeholder={
+                    verificationStatus === "Verified"
+                      ? "Provide a message for verification..."
+                      : verificationStatus === "Rejected"
+                      ? "Please provide a reason for rejection..."
+                      : "Provide a message..."
+                  }
+                  value={rejectionMessage}
+                  onChange={(e) => setRejectionMessage(e.target.value)}
+                  rows={4}
+                  className="resize-none"
+                />
+                <p className="text-xs text-muted-foreground">
+                  This message will be sent to the company as notification
+                </p>
+              </div>
             </div>
 
             <DialogFooter>

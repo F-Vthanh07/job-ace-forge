@@ -22,10 +22,22 @@ export const Navbar = () => {
   const { theme, toggleTheme } = useTheme();
   const { setLanguage, t } = useLanguage();
 
-  // Load user data from localStorage on mount
+  // Load user data from localStorage on mount and listen for changes
   useEffect(() => {
-    const userData = authService.getUser();
-    setUser(userData);
+    const loadUser = () => {
+      const userData = authService.getUser();
+      setUser(userData);
+    };
+    
+    // Load on mount
+    loadUser();
+    
+    // Listen for storage changes (login/logout from other tabs or components)
+    window.addEventListener('storage', loadUser);
+    
+    return () => {
+      window.removeEventListener('storage', loadUser);
+    };
   }, []);
 
   // Get user initials for avatar

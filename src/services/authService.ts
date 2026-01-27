@@ -305,7 +305,7 @@ class AuthService {
         console.log("📤 Fetching user data for Account Id:", accountId);
         userData = await this.getUserById(accountId);
         if (userData) {
-          localStorage.setItem("userData", JSON.stringify(userData));
+          localStorage.setItem("user", JSON.stringify(userData));
           console.log("✅ User data saved to localStorage:", userData);
 
           // If user is a Recruiter, fetch their company data
@@ -390,7 +390,12 @@ class AuthService {
     localStorage.removeItem("authToken");
     localStorage.removeItem("accountId");
     localStorage.removeItem("user");
+    localStorage.removeItem("userData"); // Remove old key for backwards compatibility
+    localStorage.removeItem("companyFormData"); // Clear company form data
+    localStorage.removeItem("recruiterCompany"); // Clear recruiter company data
     console.log("✅ User logged out, all data cleared from localStorage");
+    // Trigger storage event for other components
+    window.dispatchEvent(new Event('storage'));
   }
 
   /**

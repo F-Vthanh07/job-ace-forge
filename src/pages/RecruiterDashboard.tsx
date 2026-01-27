@@ -2,7 +2,7 @@ import { Navbar } from "@/components/Navbar";
 import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Briefcase, Users, TrendingUp, Clock, Plus, Loader2 } from "lucide-react";
+import { Briefcase, Users, TrendingUp, Clock, Plus, Loader2, XCircle, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { companyService, CompanyData } from "@/services/companyService";
@@ -13,7 +13,13 @@ const RecruiterDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchRecruiterCompany();
+    // Delay fetching company data by 2 seconds to ensure user data is properly stored after login
+    const timeoutId = setTimeout(() => {
+      fetchRecruiterCompany();
+    }, 2000);
+
+    // Cleanup timeout on component unmount
+    return () => clearTimeout(timeoutId);
   }, []);
 
   const fetchRecruiterCompany = async () => {
@@ -34,7 +40,7 @@ const RecruiterDashboard = () => {
       console.log("⚠️ No cached company data, fetching from API...");
       
       // Get recruiter account ID from localStorage (stored during login)
-      const userDataString = localStorage.getItem("userData");
+      const userDataString = localStorage.getItem("user");
       if (!userDataString) {
         console.error("❌ User data not found in localStorage");
         notifyError({
@@ -103,6 +109,62 @@ const RecruiterDashboard = () => {
             <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
             <p className="text-muted-foreground">Loading company information...</p>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if company verification status is Pending or Rejected
+  if (companyData && (companyData.verificationStatus === "Pending" || companyData.verificationStatus === "Rejected")) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+          <Card className="max-w-2xl w-full p-8">
+            <div className="text-center">
+              {companyData.verificationStatus === "Pending" ? (
+                <>
+                  <AlertCircle className="h-20 w-20 mx-auto mb-6 text-warning" />
+                  <h1 className="text-3xl font-bold mb-4">Company Verification Pending</h1>
+                  <p className="text-muted-foreground mb-6 text-lg">
+                    Your company <span className="font-semibold text-foreground">{companyData.name}</span> is currently under review.
+                  </p>
+                  <div className="bg-warning/10 border border-warning/20 rounded-lg p-6 mb-6">
+                    <p className="text-sm text-foreground">
+                      Our team is reviewing your company information. This process typically takes 1-2 business days.
+                      You will receive a notification once the verification is complete.
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <XCircle className="h-20 w-20 mx-auto mb-6 text-destructive" />
+                  <h1 className="text-3xl font-bold mb-4">Company Verification Rejected</h1>
+                  <p className="text-muted-foreground mb-6 text-lg">
+                    Unfortunately, your company <span className="font-semibold text-foreground">{companyData.name}</span> verification has been rejected.
+                  </p>
+                  {companyData.notiMess && (
+                    <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-6 mb-6">
+                      <h3 className="font-semibold mb-2 text-destructive">Reason for Rejection:</h3>
+                      <p className="text-sm text-foreground">{companyData.notiMess}</p>
+                    </div>
+                  )}
+                  <p className="text-sm text-muted-foreground mb-6">
+                    Please update your company information and resubmit for verification.
+                  </p>
+                </>
+              )}
+              
+              <div className="flex gap-4 justify-center">
+                <Button variant="outline" asChild>
+                  <Link to="/business-profile">View Company Profile</Link>
+                </Button>
+                <Button variant="outline" asChild>
+                  <Link to="/">Go to Home</Link>
+                </Button>
+              </div>
+            </div>
+          </Card>
         </div>
       </div>
     );
