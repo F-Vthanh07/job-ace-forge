@@ -2,15 +2,22 @@ import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FileText, Plus, Download, Eye, Edit, Trash2, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { cvService, CVData } from "@/services/cvService";
 import { notifyError } from "@/utils/notification";
+import { SimpleTemplate, ModernTemplate, ProfessionalTemplate, CreativeTemplate } from "@/components/cv-templates";
+import html2pdf from "html2pdf.js";
+import { useToast } from "@/hooks/use-toast";
 
 const CVManager = () => {
   const [cvs, setCvs] = useState<CVData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedCV, setSelectedCV] = useState<CVData | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     fetchCVs();
@@ -30,6 +37,63 @@ const CVManager = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewCV = (cv: CVData) => {
+    setSelectedCV(cv);
+    setShowPreview(true);
+  };
+
+  const handleDownloadPDF = (cv: CVData) => {
+    setSelectedCV(cv);
+    setTimeout(() => {
+      const element = document.getElementById("cv-preview-print");
+      if (!element) return;
+
+      const opt = {
+        margin: 0,
+        filename: `${cv.fullName || "CV"}.pdf`,
+        image: { type: "jpeg" as const, quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
+      };
+
+      html2pdf().set(opt).from(element).save();
+      toast({
+        title: "PDF Downloaded",
+        description: "Your CV has been downloaded successfully!",
+      });
+    }, 100);
+  };
+
+  const renderCVTemplate = (cv: CVData) => {
+    const templateData = {
+      fullName: cv.fullName,
+      email: cv.contacts?.split(', ').find(c => c.startsWith('Email:'))?.replace('Email: ', '') || '',
+      phone: cv.contacts?.split(', ').find(c => c.startsWith('Phone:'))?.replace('Phone: ', '') || '',
+      address: cv.workLocation || '',
+      title: cv.jobtitle,
+      summary: cv.aboutMe,
+      photo: cv.avatarUrl || '',
+    };
+
+    const templateMap: { [key: string]: typeof SimpleTemplate } = {
+      simple: SimpleTemplate,
+      modern: ModernTemplate,
+      professional: ProfessionalTemplate,
+      creative: CreativeTemplate,
+    };
+
+    const TemplateComponent = templateMap[cv.template?.toLowerCase() || 'simple'] || SimpleTemplate;
+
+    return (
+      <TemplateComponent
+        data={templateData}
+        skills={cv.skills || []}
+        workExperiences={cv.workExperiences || []}
+        educations={cv.educations || []}
+      />
+    );
   };
 
   if (loading) {
@@ -95,42 +159,66 @@ const CVManager = () => {
                   Template: <span className="font-medium capitalize">{cv.template?.replace(/_/g, ' ') || "Default"}</span>
                 </p>
 
-                <div className="mb-4 space-y-2">
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Skills:</span>
-                    <span className="font-medium">{cv.skills?.length || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Experience:</span>
-                    <span className="font-medium">{cv.workExperiences?.length || 0}</span>
-                  </div>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Education:</span>
-                    <span className="font-medium">{cv.educations?.length || 0}</span>
-                  </div>
-                </div>
+                {cv.aboutMe && (
+                  <p className="text-sm text-muted-foreground mb-4 line-clamp-2">
+                    {cv.aboutMe}
+                  </p>
+                )}
 
                 <div className="flex gap-2">
-                <Button variant="outline" size="sm" className="flex-1" asChild>
-                  <Link to={`/cv-feedback/${cv.id}`}>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="flex-1"
+                    onClick={() => handleViewCV(cv)}
+                  >
                     <Eye className="h-4 w-4 mr-1" />
-                    View
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm" className="flex-1" asChild>
-                  <Link to={`/cv-builder?id=${cv.id}`}>
-                    <Edit className="h-4 w-4 mr-1" />
-                    Edit
-                  </Link>
-                </Button>
-                <Button variant="outline" size="sm">
-                  <Download className="h-4 w-4" />
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+                    View CV
+                  </Button>
+                  <Button variant="outline" size="sm" className="flex-1" asChild>
+                    <Link to={`/cv-builder?id=${cv.id}`}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Edit
+                    </Link>
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => handleDownloadPDF(cv)}
+                  >
+                    <Download className="h-4 w-4" />
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </div>
         )}
+
+        {/* CV Preview Dialog */}
+        <Dialog open={showPreview} onOpenChange={setShowPreview}>
+          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-card">
+            <DialogHeader>
+              <DialogTitle>CV Preview - {selectedCV?.jobtitle}</DialogTitle>
+            </DialogHeader>
+            {selectedCV && (
+              <div id="cv-preview-print">
+                {renderCVTemplate(selectedCV)}
+              </div>
+            )}
+            <div className="flex justify-end gap-3 mt-4">
+              <Button variant="outline" onClick={() => setShowPreview(false)}>
+                Close
+              </Button>
+              <Button 
+                className="gradient-primary"
+                onClick={() => selectedCV && handleDownloadPDF(selectedCV)}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
