@@ -103,7 +103,8 @@ const RoleSelection = () => {
       if (selectedRole === "Recruiter") {
         navigate("/business-choice");
       } else {
-        navigate("/onboarding");
+        // Redirect candidate directly to dashboard instead of onboarding
+        navigate("/dashboard");
       }
     } catch (err) {
       console.error("Error creating account:", err);
