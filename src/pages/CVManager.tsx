@@ -27,8 +27,9 @@ const CVManager = () => {
     try {
       setLoading(true);
       const response = await cvService.getAllCVsByCandidate();
-      if (response.success && response.data) {
-        setCvs(response.data);
+      if (response.success) {
+        setCvs(response.data || []);
+        // Không hiển thị lỗi nếu chưa có CV (data rỗng là bình thường)
       } else {
         notifyError(response.message || "Failed to load CVs");
       }

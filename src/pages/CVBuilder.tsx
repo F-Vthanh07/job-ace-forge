@@ -4,19 +4,35 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Sparkles, Eye, Download, FileText, Upload, Loader2, Plus, Trash2 } from "lucide-react";
+import { Sparkles, Eye, FileText, Upload, Loader2, Plus, Trash2, AlertCircle } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CVPreview } from "@/components/CVPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import html2pdf from "html2pdf.js";
 import { SimpleTemplate, ModernTemplate, ProfessionalTemplate, CreativeTemplate } from "@/components/cv-templates";
 import { Link } from "react-router-dom";
 import { cvService, CVSkill, CVWorkExperience, CVEducation } from "@/services/cvService";
 import { authService } from "@/services/authService";
 import { notifySuccess, notifyError } from "@/utils/notification";
+import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+// Country codes for phone numbers
+const countryCodes = [
+  { code: "+84", country: "Vietnam", flag: "🇻🇳" },
+  { code: "+1", country: "USA/Canada", flag: "🇺🇸" },
+  { code: "+44", country: "UK", flag: "🇬🇧" },
+  { code: "+86", country: "China", flag: "🇨🇳" },
+  { code: "+81", country: "Japan", flag: "🇯🇵" },
+  { code: "+82", country: "South Korea", flag: "🇰🇷" },
+  { code: "+65", country: "Singapore", flag: "🇸🇬" },
+  { code: "+60", country: "Malaysia", flag: "🇲🇾" },
+  { code: "+66", country: "Thailand", flag: "🇹🇭" },
+  { code: "+62", country: "Indonesia", flag: "🇮🇩" },
+  { code: "+63", country: "Philippines", flag: "🇵🇭" },
+];
 
 const CVBuilder = () => {
   const [aiSuggestion, setAiSuggestion] = useState("");
@@ -51,9 +67,171 @@ const CVBuilder = () => {
   ]);
   const [isSaving, setIsSaving] = useState(false);
   const [additionalContacts, setAdditionalContacts] = useState<{type: string, value: string}[]>([]);
+  
+  // Validation errors state
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  
+  // Phone number with country code
+  const [countryCode, setCountryCode] = useState("+84");
+  const [phoneWithoutCode, setPhoneWithoutCode] = useState("");
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
+    if (errors[field]) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors[field];
+        return newErrors;
+      });
+    }
+  };
+
+  // Handle phone number with country code
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value.replace(/\D/g, ''); // Only numbers
+    setPhoneWithoutCode(value);
+    setFormData((prev) => ({
+      ...prev,
+      phone: countryCode + value,
+    }));
+    // Clear error
+    if (errors.phone) {
+      setErrors((prev) => {
+        const newErrors = { ...prev };
+        delete newErrors.phone;
+        return newErrors;
+      });
+    }
+  };
+
+  const handleCountryCodeChange = (value: string) => {
+    setCountryCode(value);
+    setFormData((prev) => ({
+      ...prev,
+      phone: value + phoneWithoutCode,
+    }));
+  };
+
+  // Validation functions
+  const validateFullName = (name: string): string | null => {
+    if (!name || !name.trim()) return "Full name is required";
+    if (name.trim().length < 2) return "Full name must be at least 2 characters";
+    if (name.length > 100) return "Full name must not exceed 100 characters";
+    return null;
+  };
+
+  const validateEmail = (email: string): string | null => {
+    if (!email || !email.trim()) return "Email is required";
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return "Invalid email format";
+    if (email.length > 100) return "Email must not exceed 100 characters";
+    return null;
+  };
+
+  const validatePhone = (phone: string): string | null => {
+    if (!phone || !phone.trim()) return "Phone number is required";
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10) return "Phone must have at least 10 digits";
+    if (cleanPhone.length > 15) return "Phone must not exceed 15 digits";
+    return null;
+  };
+
+  const validateTitle = (title: string): string | null => {
+    if (!title || !title.trim()) return "Professional title is required";
+    if (title.trim().length < 3) return "Title must be at least 3 characters";
+    if (title.length > 200) return "Title must not exceed 200 characters";
+    return null;
+  };
+
+  const validateSummary = (summary: string): string | null => {
+    if (!summary || !summary.trim()) return "Professional summary is required";
+    if (summary.trim().length < 50) return "Summary must be at least 50 characters";
+    if (summary.length > 2000) return "Summary must not exceed 2000 characters";
+    return null;
+  };
+
+  const validateUrl = (url: string): string | null => {
+    if (!url) return null; // Optional field
+    try {
+      const urlObj = new URL(url);
+      if (!['http:', 'https:'].includes(urlObj.protocol)) {
+        return "URL must start with http:// or https://";
+      }
+    } catch {
+      return "Invalid URL format";
+    }
+    return null;
+  };
+
+  const validateCV = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
+    // Validate basic fields
+    const fullNameError = validateFullName(formData.fullName);
+    if (fullNameError) newErrors.fullName = fullNameError;
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) newErrors.email = emailError;
+
+    const phoneError = validatePhone(formData.phone);
+    if (phoneError) newErrors.phone = phoneError;
+
+    const titleError = validateTitle(formData.title);
+    if (titleError) newErrors.title = titleError;
+
+    const summaryError = validateSummary(formData.summary);
+    if (summaryError) newErrors.summary = summaryError;
+
+    const portfolioError = validateUrl(formData.portfolioUrl);
+    if (portfolioError) newErrors.portfolioUrl = portfolioError;
+
+    // Validate skills (at least one skill)
+    const validSkills = skills.filter(s => s.skillName.trim());
+    if (validSkills.length === 0) {
+      newErrors.skills = "Please add at least one skill";
+    }
+
+    // Validate work experience
+    workExperiences.forEach((exp, index) => {
+      if (exp.companyName || exp.position) {
+        if (!exp.companyName.trim()) newErrors[`workExp${index}_company`] = "Company name is required";
+        if (!exp.position.trim()) newErrors[`workExp${index}_position`] = "Position is required";
+        if (!exp.startDate) newErrors[`workExp${index}_startDate`] = "Start date is required";
+      }
+    });
+
+    // Validate education
+    educations.forEach((edu, index) => {
+      if (edu.schoolName || edu.degree) {
+        if (!edu.schoolName.trim()) newErrors[`edu${index}_school`] = "School name is required";
+        if (!edu.degree.trim()) newErrors[`edu${index}_degree`] = "Degree is required";
+        if (!edu.major.trim()) newErrors[`edu${index}_major`] = "Major is required";
+      }
+    });
+
+    setErrors(newErrors);
+
+    // Show toast with errors
+    if (Object.keys(newErrors).length > 0) {
+      const errorMessages = Object.values(newErrors).slice(0, 5); // Show first 5 errors
+      toast({
+        title: "Validation Errors",
+        description: (
+          <ul className="list-disc list-inside space-y-1 text-sm">
+            {errorMessages.map((error, index) => (
+              <li key={index}>{error}</li>
+            ))}
+            {Object.keys(newErrors).length > 5 && (
+              <li>...and {Object.keys(newErrors).length - 5} more errors</li>
+            )}
+          </ul>
+        ),
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    return true;
   };
 
   const handlePhotoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -68,9 +246,8 @@ const CVBuilder = () => {
   };
 
   const handleSaveCV = async () => {
-    // Validate required fields
-    if (!formData.fullName || !formData.title || !formData.summary) {
-      notifyError("Please fill in all required fields: Full Name, Job Title, and About Me");
+    // Run validation
+    if (!validateCV()) {
       return;
     }
 
@@ -150,25 +327,6 @@ const CVBuilder = () => {
         description: "Your CV has been generated with AI assistance!",
       });
     }, 2000);
-  };
-
-  const handleDownloadPDF = () => {
-    const element = document.getElementById("cv-preview");
-    if (!element) return;
-
-    const opt = {
-      margin: 0,
-      filename: `${formData.fullName || "CV"}.pdf`,
-      image: { type: "jpeg" as const, quality: 0.98 },
-      html2canvas: { scale: 2 },
-      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" as const },
-    };
-
-    html2pdf().set(opt).from(element).save();
-    toast({
-      title: "PDF Downloaded",
-      description: "Your CV has been downloaded successfully!",
-    });
   };
 
   // Use a single consistent border color for all templates
@@ -252,14 +410,6 @@ const CVBuilder = () => {
                 )}
                 {isSaving ? "Saving..." : "Save CV"}
               </Button>
-              <Button 
-                variant="outline"
-                onClick={handleDownloadPDF}
-                disabled={!formData.fullName}
-              >
-                <Download className="h-4 w-4 mr-2" />
-                {t("cvBuilder.downloadPDF")}
-              </Button>
             </div>
           </div>
 
@@ -334,10 +484,16 @@ const CVBuilder = () => {
                     <Input 
                       id="fullName" 
                       placeholder="Lê Hoàng Nam" 
-                      className="mt-1"
+                      className={cn("mt-1", errors.fullName && "border-destructive")}
                       value={formData.fullName}
                       onChange={(e) => handleInputChange("fullName", e.target.value)}
                     />
+                    {errors.fullName && (
+                      <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                        <AlertCircle className="h-3 w-3" />
+                        <span>{errors.fullName}</span>
+                      </div>
+                    )}
                   </div>
                   
                   <div className="grid md:grid-cols-2 gap-4">
@@ -347,20 +503,50 @@ const CVBuilder = () => {
                         id="email" 
                         type="email" 
                         placeholder="thao.tran@company.vn" 
-                        className="mt-1"
+                        className={cn("mt-1", errors.email && "border-destructive")}
                         value={formData.email}
                         onChange={(e) => handleInputChange("email", e.target.value)}
                       />
+                      {errors.email && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>{errors.email}</span>
+                        </div>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="phone">{t("cvBuilder.phone")} *</Label>
-                      <Input 
-                        id="phone" 
-                        placeholder="0522138110" 
-                        className="mt-1"
-                        value={formData.phone}
-                        onChange={(e) => handleInputChange("phone", e.target.value)}
-                      />
+                      <div className="flex gap-2 mt-1">
+                        <Select value={countryCode} onValueChange={handleCountryCodeChange}>
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {countryCodes.map((country) => (
+                              <SelectItem key={country.code} value={country.code}>
+                                <span className="flex items-center gap-2">
+                                  <span>{country.flag}</span>
+                                  <span>{country.code}</span>
+                                </span>
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input 
+                          id="phoneInput"
+                          type="tel"
+                          placeholder="912345678" 
+                          className={cn("flex-1", errors.phone && "border-destructive")}
+                          value={phoneWithoutCode}
+                          onChange={handlePhoneChange}
+                        />
+                      </div>
+                      {errors.phone && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>{errors.phone}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -384,10 +570,16 @@ const CVBuilder = () => {
                         <Input 
                           id="title" 
                           placeholder="Senior Frontend Developer" 
-                          className="mt-1"
+                          className={cn("mt-1", errors.title && "border-destructive")}
                           value={formData.title}
                           onChange={(e) => handleInputChange("title", e.target.value)}
                         />
+                        {errors.title && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>{errors.title}</span>
+                          </div>
+                        )}
                       </div>
                       
                       <div>
@@ -396,10 +588,19 @@ const CVBuilder = () => {
                           id="summary" 
                           rows={4} 
                           placeholder="Tôi là một nhà phát triển Frontend với hơn 5 năm kinh nghiệm xây dựng các ứng dụng web quy mô lớn..." 
-                          className="mt-1"
+                          className={cn("mt-1", errors.summary && "border-destructive")}
                           value={formData.summary}
                           onChange={(e) => handleInputChange("summary", e.target.value)}
                         />
+                        {errors.summary && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>{errors.summary}</span>
+                          </div>
+                        )}
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Minimum 50 characters ({formData.summary.length}/50)
+                        </p>
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-4">
@@ -408,10 +609,16 @@ const CVBuilder = () => {
                           <Input 
                             id="portfolioUrl" 
                             placeholder="https://nguyenfrontend.dev" 
-                            className="mt-1"
+                            className={cn("mt-1", errors.portfolioUrl && "border-destructive")}
                             value={formData.portfolioUrl}
                             onChange={(e) => handleInputChange("portfolioUrl", e.target.value)}
                           />
+                          {errors.portfolioUrl && (
+                            <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                              <AlertCircle className="h-3 w-3" />
+                              <span>{errors.portfolioUrl}</span>
+                            </div>
+                          )}
                         </div>
                         <div>
                           <Label htmlFor="desiredJobTitle">Desired Job Title</Label>
@@ -517,28 +724,46 @@ const CVBuilder = () => {
                   {skills.map((skill, index) => (
                     <div key={index} className="flex gap-2 items-end">
                       <div className="flex-1">
-                        <Label>Skill Name</Label>
+                        <Label>Skill Name *</Label>
                         <Input
                           placeholder="ReactJS, TypeScript..."
+                          className={cn(errors.skills && !skill.skillName.trim() && "border-destructive")}
                           value={skill.skillName}
                           onChange={(e) => {
                             const newSkills = [...skills];
                             newSkills[index].skillName = e.target.value;
                             setSkills(newSkills);
+                            // Clear skills error
+                            if (errors.skills) {
+                              setErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors.skills;
+                                return newErrors;
+                              });
+                            }
                           }}
                         />
                       </div>
                       <div className="w-40">
                         <Label>Level</Label>
-                        <Input
-                          placeholder="Beginner/Advanced/Expert"
+                        <Select
                           value={skill.proficiencyLevel}
-                          onChange={(e) => {
+                          onValueChange={(value) => {
                             const newSkills = [...skills];
-                            newSkills[index].proficiencyLevel = e.target.value;
+                            newSkills[index].proficiencyLevel = value;
                             setSkills(newSkills);
                           }}
-                        />
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Beginner">Beginner</SelectItem>
+                            <SelectItem value="Intermediate">Intermediate</SelectItem>
+                            <SelectItem value="Advanced">Advanced</SelectItem>
+                            <SelectItem value="Expert">Expert</SelectItem>
+                          </SelectContent>
+                        </Select>
                       </div>
                       {skills.length > 1 && (
                         <Button
@@ -551,6 +776,12 @@ const CVBuilder = () => {
                       )}
                     </div>
                   ))}
+                  {errors.skills && (
+                    <div className="flex items-center gap-1 text-xs text-destructive">
+                      <AlertCircle className="h-3 w-3" />
+                      <span>{errors.skills}</span>
+                    </div>
+                  )}
                   <Button
                     variant="outline"
                     className="w-full"
@@ -579,53 +810,183 @@ const CVBuilder = () => {
                       )}
                     </div>
                     <div>
-                      <Label>Company Name</Label>
+                      <Label>Company Name *</Label>
                       <Input
                         placeholder="Tech Company Inc."
+                        className={cn(errors[`workExp${index}_company`] && "border-destructive")}
                         value={exp.companyName}
                         onChange={(e) => {
                           const newExp = [...workExperiences];
                           newExp[index].companyName = e.target.value;
                           setWorkExperiences(newExp);
+                          // Clear error
+                          if (errors[`workExp${index}_company`]) {
+                            setErrors((prev) => {
+                              const newErrors = { ...prev };
+                              delete newErrors[`workExp${index}_company`];
+                              return newErrors;
+                            });
+                          }
                         }}
                       />
+                      {errors[`workExp${index}_company`] && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>{errors[`workExp${index}_company`]}</span>
+                        </div>
+                      )}
                     </div>
                     <div>
-                      <Label>Position</Label>
+                      <Label>Position *</Label>
                       <Input
                         placeholder="Senior Developer"
+                        className={cn(errors[`workExp${index}_position`] && "border-destructive")}
                         value={exp.position}
                         onChange={(e) => {
                           const newExp = [...workExperiences];
                           newExp[index].position = e.target.value;
                           setWorkExperiences(newExp);
+                          // Clear error
+                          if (errors[`workExp${index}_position`]) {
+                            setErrors((prev) => {
+                              const newErrors = { ...prev };
+                              delete newErrors[`workExp${index}_position`];
+                              return newErrors;
+                            });
+                          }
                         }}
                       />
+                      {errors[`workExp${index}_position`] && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>{errors[`workExp${index}_position`]}</span>
+                        </div>
+                      )}
                     </div>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <div>
-                        <Label>Start Date</Label>
-                        <Input
-                          type="date"
-                          value={exp.startDate}
-                          onChange={(e) => {
-                            const newExp = [...workExperiences];
-                            newExp[index].startDate = e.target.value;
-                            setWorkExperiences(newExp);
-                          }}
-                        />
+                        <Label>Start Date *</Label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select
+                            value={exp.startDate?.split("-")[1] || ""}
+                            onValueChange={(value) => {
+                              const newExp = [...workExperiences];
+                              const year = exp.startDate?.split("-")[0] || new Date().getFullYear().toString();
+                              newExp[index].startDate = `${year}-${value}`;
+                              setWorkExperiences(newExp);
+                              if (errors[`workExp${index}_startDate`]) {
+                                setErrors((prev) => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors[`workExp${index}_startDate`];
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className={cn(errors[`workExp${index}_startDate`] && "border-destructive")}>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="01">January</SelectItem>
+                              <SelectItem value="02">February</SelectItem>
+                              <SelectItem value="03">March</SelectItem>
+                              <SelectItem value="04">April</SelectItem>
+                              <SelectItem value="05">May</SelectItem>
+                              <SelectItem value="06">June</SelectItem>
+                              <SelectItem value="07">July</SelectItem>
+                              <SelectItem value="08">August</SelectItem>
+                              <SelectItem value="09">September</SelectItem>
+                              <SelectItem value="10">October</SelectItem>
+                              <SelectItem value="11">November</SelectItem>
+                              <SelectItem value="12">December</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={exp.startDate?.split("-")[0] || ""}
+                            onValueChange={(value) => {
+                              const newExp = [...workExperiences];
+                              const month = exp.startDate?.split("-")[1] || "01";
+                              newExp[index].startDate = `${value}-${month}`;
+                              setWorkExperiences(newExp);
+                              if (errors[`workExp${index}_startDate`]) {
+                                setErrors((prev) => {
+                                  const newErrors = { ...prev };
+                                  delete newErrors[`workExp${index}_startDate`];
+                                  return newErrors;
+                                });
+                              }
+                            }}
+                          >
+                            <SelectTrigger className={cn(errors[`workExp${index}_startDate`] && "border-destructive")}>
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {errors[`workExp${index}_startDate`] && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>{errors[`workExp${index}_startDate`]}</span>
+                          </div>
+                        )}
                       </div>
                       <div>
                         <Label>End Date</Label>
-                        <Input
-                          type="date"
-                          value={exp.endDate}
-                          onChange={(e) => {
-                            const newExp = [...workExperiences];
-                            newExp[index].endDate = e.target.value;
-                            setWorkExperiences(newExp);
-                          }}
-                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select
+                            value={exp.endDate?.split("-")[1] || ""}
+                            onValueChange={(value) => {
+                              const newExp = [...workExperiences];
+                              const year = exp.endDate?.split("-")[0] || new Date().getFullYear().toString();
+                              newExp[index].endDate = `${year}-${value}`;
+                              setWorkExperiences(newExp);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="01">January</SelectItem>
+                              <SelectItem value="02">February</SelectItem>
+                              <SelectItem value="03">March</SelectItem>
+                              <SelectItem value="04">April</SelectItem>
+                              <SelectItem value="05">May</SelectItem>
+                              <SelectItem value="06">June</SelectItem>
+                              <SelectItem value="07">July</SelectItem>
+                              <SelectItem value="08">August</SelectItem>
+                              <SelectItem value="09">September</SelectItem>
+                              <SelectItem value="10">October</SelectItem>
+                              <SelectItem value="11">November</SelectItem>
+                              <SelectItem value="12">December</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={exp.endDate?.split("-")[0] || ""}
+                            onValueChange={(value) => {
+                              const newExp = [...workExperiences];
+                              const month = exp.endDate?.split("-")[1] || "01";
+                              newExp[index].endDate = `${value}-${month}`;
+                              setWorkExperiences(newExp);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                     <div>
@@ -670,41 +1031,86 @@ const CVBuilder = () => {
                       )}
                     </div>
                     <div>
-                      <Label>School Name</Label>
+                      <Label>School Name *</Label>
                       <Input
                         placeholder="University of Technology"
+                        className={cn(errors[`edu${index}_school`] && "border-destructive")}
                         value={edu.schoolName}
                         onChange={(e) => {
                           const newEdu = [...educations];
                           newEdu[index].schoolName = e.target.value;
                           setEducations(newEdu);
+                          // Clear error
+                          if (errors[`edu${index}_school`]) {
+                            setErrors((prev) => {
+                              const newErrors = { ...prev };
+                              delete newErrors[`edu${index}_school`];
+                              return newErrors;
+                            });
+                          }
                         }}
                       />
+                      {errors[`edu${index}_school`] && (
+                        <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                          <AlertCircle className="h-3 w-3" />
+                          <span>{errors[`edu${index}_school`]}</span>
+                        </div>
+                      )}
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
                       <div>
-                        <Label>Degree</Label>
+                        <Label>Degree *</Label>
                         <Input
                           placeholder="Bachelor's"
+                          className={cn(errors[`edu${index}_degree`] && "border-destructive")}
                           value={edu.degree}
                           onChange={(e) => {
                             const newEdu = [...educations];
                             newEdu[index].degree = e.target.value;
                             setEducations(newEdu);
+                            // Clear error
+                            if (errors[`edu${index}_degree`]) {
+                              setErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors[`edu${index}_degree`];
+                                return newErrors;
+                              });
+                            }
                           }}
                         />
+                        {errors[`edu${index}_degree`] && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>{errors[`edu${index}_degree`]}</span>
+                          </div>
+                        )}
                       </div>
                       <div>
-                        <Label>Major</Label>
+                        <Label>Major *</Label>
                         <Input
                           placeholder="Computer Science"
+                          className={cn(errors[`edu${index}_major`] && "border-destructive")}
                           value={edu.major}
                           onChange={(e) => {
                             const newEdu = [...educations];
                             newEdu[index].major = e.target.value;
                             setEducations(newEdu);
+                            // Clear error
+                            if (errors[`edu${index}_major`]) {
+                              setErrors((prev) => {
+                                const newErrors = { ...prev };
+                                delete newErrors[`edu${index}_major`];
+                                return newErrors;
+                              });
+                            }
                           }}
                         />
+                        {errors[`edu${index}_major`] && (
+                          <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                            <AlertCircle className="h-3 w-3" />
+                            <span>{errors[`edu${index}_major`]}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                     <div className="grid md:grid-cols-2 gap-4">
@@ -721,30 +1127,110 @@ const CVBuilder = () => {
                         />
                       </div>
                     </div>
-                    <div className="grid md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
                       <div>
                         <Label>Start Date</Label>
-                        <Input
-                          type="date"
-                          value={edu.startDate}
-                          onChange={(e) => {
-                            const newEdu = [...educations];
-                            newEdu[index].startDate = e.target.value;
-                            setEducations(newEdu);
-                          }}
-                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select
+                            value={edu.startDate?.split("-")[1] || ""}
+                            onValueChange={(value) => {
+                              const newEdu = [...educations];
+                              const year = edu.startDate?.split("-")[0] || new Date().getFullYear().toString();
+                              newEdu[index].startDate = `${year}-${value}`;
+                              setEducations(newEdu);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="01">January</SelectItem>
+                              <SelectItem value="02">February</SelectItem>
+                              <SelectItem value="03">March</SelectItem>
+                              <SelectItem value="04">April</SelectItem>
+                              <SelectItem value="05">May</SelectItem>
+                              <SelectItem value="06">June</SelectItem>
+                              <SelectItem value="07">July</SelectItem>
+                              <SelectItem value="08">August</SelectItem>
+                              <SelectItem value="09">September</SelectItem>
+                              <SelectItem value="10">October</SelectItem>
+                              <SelectItem value="11">November</SelectItem>
+                              <SelectItem value="12">December</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={edu.startDate?.split("-")[0] || ""}
+                            onValueChange={(value) => {
+                              const newEdu = [...educations];
+                              const month = edu.startDate?.split("-")[1] || "01";
+                              newEdu[index].startDate = `${value}-${month}`;
+                              setEducations(newEdu);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                       <div>
                         <Label>End Date</Label>
-                        <Input
-                          type="date"
-                          value={edu.endDate}
-                          onChange={(e) => {
-                            const newEdu = [...educations];
-                            newEdu[index].endDate = e.target.value;
-                            setEducations(newEdu);
-                          }}
-                        />
+                        <div className="grid grid-cols-2 gap-2">
+                          <Select
+                            value={edu.endDate?.split("-")[1] || ""}
+                            onValueChange={(value) => {
+                              const newEdu = [...educations];
+                              const year = edu.endDate?.split("-")[0] || new Date().getFullYear().toString();
+                              newEdu[index].endDate = `${year}-${value}`;
+                              setEducations(newEdu);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Month" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="01">January</SelectItem>
+                              <SelectItem value="02">February</SelectItem>
+                              <SelectItem value="03">March</SelectItem>
+                              <SelectItem value="04">April</SelectItem>
+                              <SelectItem value="05">May</SelectItem>
+                              <SelectItem value="06">June</SelectItem>
+                              <SelectItem value="07">July</SelectItem>
+                              <SelectItem value="08">August</SelectItem>
+                              <SelectItem value="09">September</SelectItem>
+                              <SelectItem value="10">October</SelectItem>
+                              <SelectItem value="11">November</SelectItem>
+                              <SelectItem value="12">December</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            value={edu.endDate?.split("-")[0] || ""}
+                            onValueChange={(value) => {
+                              const newEdu = [...educations];
+                              const month = edu.endDate?.split("-")[1] || "01";
+                              newEdu[index].endDate = `${value}-${month}`;
+                              setEducations(newEdu);
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue placeholder="Year" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {Array.from({ length: 50 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                                <SelectItem key={year} value={year.toString()}>
+                                  {year}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
                     </div>
                     <div>
@@ -830,10 +1316,6 @@ const CVBuilder = () => {
             <div className="flex justify-end gap-3 mt-4">
               <Button variant="outline" onClick={() => setShowPreview(false)}>
                 Close
-              </Button>
-              <Button className="gradient-primary" onClick={handleDownloadPDF}>
-                <Download className="h-4 w-4 mr-2" />
-                {t("cvBuilder.downloadPDF")}
               </Button>
             </div>
           </DialogContent>

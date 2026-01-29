@@ -3,7 +3,9 @@
  * Handles communication with job posting endpoints
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_CONFIG } from "../config/api";
+
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 export interface JobPostingRequest {
   title: string;
@@ -67,6 +69,131 @@ export interface JobListResponse {
 }
 
 class JobService {
+  /**
+   * Get all active jobs (public endpoint - no authentication required)
+   */
+  async getAllJobs(): Promise<JobListResponse> {
+    try {
+      console.log("📤 Fetching all active jobs...");
+
+      const response = await fetch(`${API_BASE_URL}/JobPosting/all`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        let errorMessage = `Failed to fetch jobs: ${response.status}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            console.error("❌ API Error details:", errorData);
+            errorMessage = errorData.message || errorData.title || errorMessage;
+          } else {
+            const errorText = await response.text();
+            console.error("❌ API Error text:", errorText);
+            if (errorText) errorMessage = errorText;
+          }
+        } catch (parseError) {
+          console.error("❌ Error parsing error response:", parseError);
+        }
+
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+
+      const result = await response.json();
+      console.log("✅ All jobs fetched successfully, count:", result?.length || 0);
+
+      // API returns array directly
+      if (Array.isArray(result)) {
+        return {
+          success: true,
+          message: "Jobs fetched successfully",
+          data: result as JobData[],
+        };
+      }
+
+      return {
+        success: true,
+        message: "Jobs fetched successfully",
+        data: (result.data || result) as JobData[],
+      };
+    } catch (error) {
+      console.error("❌ Error fetching all jobs:", error);
+      return {
+        success: false,
+        message: "Network error. Please try again.",
+      };
+    }
+  }
+
+  /**
+   * Get job by ID (public endpoint - no authentication required)
+   */
+  async getJobById(jobId: string): Promise<{
+    success: boolean;
+    message: string;
+    data?: JobData;
+  }> {
+    try {
+      console.log(`📤 Fetching job detail for ID: ${jobId}`);
+
+      const response = await fetch(`${API_BASE_URL}/JobPosting/${jobId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        let errorMessage = `Failed to fetch job: ${response.status}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            console.error("❌ API Error details:", errorData);
+            errorMessage = errorData.message || errorData.title || errorMessage;
+          } else {
+            const errorText = await response.text();
+            console.error("❌ API Error text:", errorText);
+            if (errorText) errorMessage = errorText;
+          }
+        } catch (parseError) {
+          console.error("❌ Error parsing error response:", parseError);
+        }
+
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+
+      const result = await response.json();
+      console.log("✅ Job detail fetched successfully:", result);
+
+      return {
+        success: true,
+        message: "Job fetched successfully",
+        data: result as JobData,
+      };
+    } catch (error) {
+      console.error("❌ Error fetching job detail:", error);
+      return {
+        success: false,
+        message: "Network error. Please try again.",
+      };
+    }
+  }
+
   /**
    * Create a new job posting
    */

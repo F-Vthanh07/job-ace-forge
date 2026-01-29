@@ -2,17 +2,122 @@ import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Progress } from "@/components/ui/progress";
-import { Briefcase, MapPin, DollarSign, Clock, Building, Share2, Heart } from "lucide-react";
-import { SkillBadge } from "@/components/SkillBadge";
+import { Briefcase, MapPin, DollarSign, Clock, Building2, Share2, Heart, Users, Calendar } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { jobService, JobData } from "@/services/jobService";
+import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const JobDetail = () => {
-  const matchBreakdown = [
-    { category: "Skills Match", score: 95 },
-    { category: "Experience Level", score: 88 },
-    { category: "Education", score: 92 },
-    { category: "Location", score: 90 },
-  ];
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [job, setJob] = useState<JobData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (id) {
+      loadJobDetail(id);
+    }
+  }, [id]);
+
+  const loadJobDetail = async (jobId: string) => {
+    setLoading(true);
+    try {
+      const response = await jobService.getJobById(jobId);
+      
+      if (response.success && response.data) {
+        setJob(response.data);
+        console.log("✅ Loaded job detail:", response.data);
+      } else {
+        toast({
+          title: "Error",
+          description: response.message || "Failed to load job details",
+          variant: "destructive",
+        });
+        setTimeout(() => navigate("/jobs"), 2000);
+      }
+    } catch (error) {
+      console.error("Error loading job detail:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load job details. Please try again.",
+        variant: "destructive",
+      });
+      setTimeout(() => navigate("/jobs"), 2000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatSalary = (job: JobData) => {
+    const min = job.minSalary.toLocaleString();
+    const max = job.maxSalary.toLocaleString();
+    const negotiable = job.isNegotiable ? " (Negotiable)" : "";
+    return `${min} - ${max} ${job.currency}${negotiable}`;
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) return "Today";
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return date.toLocaleDateString();
+  };
+
+  const getLocationString = (job: JobData) => {
+    if (!job.address) return "Not specified";
+    const { wardName, districtName, cityName } = job.address;
+    return `${wardName}, ${districtName}, ${cityName}`;
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-5xl mx-auto space-y-6">
+            <Card className="p-8">
+              <Skeleton className="h-12 w-3/4 mb-4" />
+              <Skeleton className="h-6 w-1/2 mb-4" />
+              <div className="flex gap-3 mb-6">
+                <Skeleton className="h-10 w-32" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+              <Skeleton className="h-12 w-40" />
+            </Card>
+            <Card className="p-6">
+              <Skeleton className="h-64" />
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!job) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-5xl mx-auto">
+            <Card className="p-12 text-center">
+              <Briefcase className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-2">Job not found</h3>
+              <p className="text-muted-foreground mb-4">The job you're looking for doesn't exist or has been removed.</p>
+              <Button onClick={() => navigate("/jobs")}>Back to Jobs</Button>
+            </Card>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -28,25 +133,37 @@ const JobDetail = () => {
                   <Briefcase className="h-8 w-8 text-white" />
                 </div>
                 <div>
-                  <h1 className="text-3xl font-bold mb-2">Senior Frontend Developer</h1>
-                  <p className="text-xl text-muted-foreground mb-3">TechCorp Vietnam</p>
+                  <h1 className="text-3xl font-bold mb-2">{job.title}</h1>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Building2 className="h-5 w-5 text-muted-foreground" />
+                    <p className="text-xl text-muted-foreground">{job.companyName}</p>
+                    <span className="text-xs">•</span>
+                    <span className="text-sm text-muted-foreground">{job.recruiterName}</span>
+                  </div>
                   <div className="flex flex-wrap gap-3">
                     <div className="flex items-center gap-1 text-sm">
                       <MapPin className="h-4 w-4 text-muted-foreground" />
-                      Ho Chi Minh City, Vietnam
+                      {getLocationString(job)}
                     </div>
                     <div className="flex items-center gap-1 text-sm">
                       <DollarSign className="h-4 w-4 text-muted-foreground" />
-                      $2,000 - $3,500 / month
+                      {formatSalary(job)}
                     </div>
                     <div className="flex items-center gap-1 text-sm">
                       <Clock className="h-4 w-4 text-muted-foreground" />
-                      Posted 2 days ago
+                      {formatDate(job.createTime)}
                     </div>
                     <div className="flex items-center gap-1 text-sm">
-                      <Building className="h-4 w-4 text-muted-foreground" />
-                      50-200 employees
+                      <Users className="h-4 w-4 text-muted-foreground" />
+                      {job.quantity} positions
                     </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Badge variant="secondary">{job.jobType}</Badge>
+                    <Badge variant="outline">{job.yearsOfExperience}+ years experience</Badge>
+                    <Badge variant={job.isActive ? "default" : "destructive"}>
+                      {job.isActive ? "Active" : "Closed"}
+                    </Badge>
                   </div>
                 </div>
               </div>
@@ -70,26 +187,46 @@ const JobDetail = () => {
             </div>
           </Card>
 
-          {/* Match Rate */}
+          {/* Job Stats */}
           <Card className="p-6 mb-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-bold">Profile Match Analysis</h2>
-              <div className="text-right">
-                <p className="text-4xl font-bold text-success">92%</p>
-                <p className="text-sm text-muted-foreground">Overall Match</p>
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              {matchBreakdown.map((item) => (
-                <div key={item.category}>
-                  <div className="flex justify-between mb-2">
-                    <span className="font-medium">{item.category}</span>
-                    <span className="text-success font-bold">{item.score}%</span>
-                  </div>
-                  <Progress value={item.score} className="h-2" />
+            <h2 className="text-2xl font-bold mb-4">Job Information</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Calendar className="h-5 w-5 text-primary" />
                 </div>
-              ))}
+                <div>
+                  <p className="text-sm text-muted-foreground">Posted Date</p>
+                  <p className="font-semibold">{new Date(job.createTime).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Clock className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Expiry Date</p>
+                  <p className="font-semibold">{new Date(job.expiryDate).toLocaleDateString()}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Open Positions</p>
+                  <p className="font-semibold">{job.quantity}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-lg bg-primary/10">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Experience Required</p>
+                  <p className="font-semibold">{job.yearsOfExperience}+ years</p>
+                </div>
+              </div>
             </div>
           </Card>
 
@@ -97,43 +234,23 @@ const JobDetail = () => {
           <Card className="p-6 mb-6">
             <h2 className="text-2xl font-bold mb-4">Job Description</h2>
             <div className="space-y-4 text-muted-foreground">
-              <p>
-                We are looking for an experienced Senior Frontend Developer to join our dynamic team.
-                You will be responsible for building and maintaining high-quality web applications
-                using modern technologies.
-              </p>
-              <div>
-                <h3 className="font-semibold text-foreground mb-2">Responsibilities:</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>Develop and maintain frontend applications using React and TypeScript</li>
-                  <li>Collaborate with designers and backend developers</li>
-                  <li>Optimize applications for maximum speed and scalability</li>
-                  <li>Mentor junior developers and conduct code reviews</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold text-foreground mb-2">Requirements:</h3>
-                <ul className="list-disc list-inside space-y-1">
-                  <li>5+ years of experience in frontend development</li>
-                  <li>Strong proficiency in React, TypeScript, and modern CSS</li>
-                  <li>Experience with state management and API integration</li>
-                  <li>Excellent problem-solving and communication skills</li>
-                </ul>
-              </div>
+              <p className="whitespace-pre-line">{job.description}</p>
             </div>
           </Card>
 
-          {/* Required Skills */}
+          {/* Requirements */}
+          <Card className="p-6 mb-6">
+            <h2 className="text-2xl font-bold mb-4">Requirements</h2>
+            <div className="text-muted-foreground whitespace-pre-line">
+              {job.requirement}
+            </div>
+          </Card>
+
+          {/* Benefits */}
           <Card className="p-6">
-            <h2 className="text-2xl font-bold mb-4">Required Skills</h2>
-            <div className="flex flex-wrap gap-2">
-              <SkillBadge skill="React" variant="primary" />
-              <SkillBadge skill="TypeScript" variant="primary" />
-              <SkillBadge skill="Tailwind CSS" variant="success" />
-              <SkillBadge skill="Git" variant="success" />
-              <SkillBadge skill="REST APIs" variant="accent" />
-              <SkillBadge skill="Testing" variant="accent" />
-              <SkillBadge skill="Agile" variant="default" />
+            <h2 className="text-2xl font-bold mb-4">Benefits</h2>
+            <div className="text-muted-foreground whitespace-pre-line">
+              {job.benefits}
             </div>
           </Card>
         </div>

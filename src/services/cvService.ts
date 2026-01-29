@@ -1,6 +1,7 @@
 import { authService } from "./authService";
+import { API_CONFIG } from "../config/api";
 
-const API_BASE_URL = "https://localhost:7145/api/CandidateCV";
+const API_BASE_URL = `${API_CONFIG.BASE_URL}/CandidateCV`;
 
 export interface CVSkill {
   id?: string;
@@ -139,6 +140,14 @@ class CVService {
           success: true,
           data: data,
           message: "CVs fetched successfully",
+        };
+      } else if (response.status === 400) {
+        // Người dùng chưa có CV
+        console.log("ℹ️ User has no CVs yet (400)");
+        return {
+          success: true,
+          data: [],
+          message: "You don't have any CVs yet. Create your first CV to get started!",
         };
       } else {
         const errorData = await response.json().catch(() => null);
