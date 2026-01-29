@@ -3,11 +3,12 @@
  * Handles communication with the C# backend API
  */
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+import { API_CONFIG } from "../config/api";
+
+const API_BASE_URL = API_CONFIG.BASE_URL;
 
 // Cloudflare Turnstile Configuration
-// Use environment variable or fallback to default key
-const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY || "0x4AAAAAACNx3IfFD1Btqrb3";
+const TURNSTILE_SITE_KEY = API_CONFIG.TURNSTILE_SITE_KEY;
 
 // Type definitions for Turnstile
 declare global {
