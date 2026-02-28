@@ -165,6 +165,105 @@ class CVService {
       };
     }
   }
+
+  /**
+   * Get CV by ID
+   */
+  async getCVById(cvId: string): Promise<ApiResponse<CVData>> {
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        console.error("❌ No authentication token found");
+        return {
+          success: false,
+          message: "Authentication required. Please login again.",
+        };
+      }
+
+      console.log("📤 Fetching CV with ID:", cvId);
+
+      const response = await fetch(`${API_BASE_URL}/get-cv-by-id/${cvId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ CV fetched successfully:", data);
+        return {
+          success: true,
+          data: data,
+          message: "CV fetched successfully",
+        };
+      } else {
+        const errorData = await response.json().catch(() => null);
+        console.error("❌ Failed to fetch CV:", response.status, errorData);
+        return {
+          success: false,
+          message: errorData?.message || `Failed to fetch CV: ${response.status}`,
+        };
+      }
+    } catch (error) {
+      console.error("❌ Error fetching CV:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to fetch CV",
+      };
+    }
+  }
+
+  /**
+   * Update an existing CV
+   */
+  async updateCV(cvId: string, cvData: CVData): Promise<ApiResponse<CVData>> {
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        console.error("❌ No authentication token found");
+        return {
+          success: false,
+          message: "Authentication required. Please login again.",
+        };
+      }
+
+      console.log("📤 Updating CV with ID:", cvId);
+
+      const response = await fetch(`${API_BASE_URL}/update-cv/${cvId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(cvData),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ CV updated successfully:", data);
+        return {
+          success: true,
+          data: data,
+          message: "CV updated successfully",
+        };
+      } else {
+        const errorData = await response.json().catch(() => null);
+        console.error("❌ Failed to update CV:", response.status, errorData);
+        return {
+          success: false,
+          message: errorData?.message || `Failed to update CV: ${response.status}`,
+        };
+      }
+    } catch (error) {
+      console.error("❌ Error updating CV:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to update CV",
+      };
+    }
+  }
 }
 
 export const cvService = new CVService();

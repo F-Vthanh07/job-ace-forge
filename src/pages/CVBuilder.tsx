@@ -5,19 +5,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Sparkles, Eye, FileText, Upload, Loader2, Plus, Trash2, AlertCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { CVPreview } from "@/components/CVPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SimpleTemplate, ModernTemplate, ProfessionalTemplate, CreativeTemplate } from "@/components/cv-templates";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { cvService, CVSkill, CVWorkExperience, CVEducation } from "@/services/cvService";
 import { authService } from "@/services/authService";
 import { notifySuccess, notifyError } from "@/utils/notification";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { aiCvSuggestService, AICVReviewResponse, AICVSuggestion } from "@/services/aiCvSuggestService";
 
 // Country codes for phone numbers
 const countryCodes = [
@@ -35,10 +36,20 @@ const countryCodes = [
 ];
 
 const CVBuilder = () => {
-  const [aiSuggestion, setAiSuggestion] = useState("");
+  const [searchParams] = useSearchParams();
+  const editingCVId = searchParams.get('id');
+  const [isLoadingCV, setIsLoadingCV] = useState(false);
+  
+  const [aiReview, setAiReview] = useState<AICVReviewResponse | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState("simple");
   const [showPreview, setShowPreview] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [showAIDetailModal, setShowAIDetailModal] = useState(false);
+  const [aiDetailContent, setAiDetailContent] = useState<{ 
+    title: string; 
+    type: 'strengths' | 'weaknesses' | 'suggestions'; 
+    items: string[] | AICVSuggestion[] 
+  }>({ title: '', type: 'strengths', items: [] });
   const { t } = useLanguage();
   const { toast } = useToast();
 
@@ -74,6 +85,108 @@ const CVBuilder = () => {
   // Phone number with country code
   const [countryCode, setCountryCode] = useState("+84");
   const [phoneWithoutCode, setPhoneWithoutCode] = useState("");
+
+  // Load CV data when editing
+  useEffect(() => {
+    const loadCVData = async () => {
+      if (!editingCVId) return;
+
+      setIsLoadingCV(true);
+      try {
+        const response = await cvService.getCVById(editingCVId);
+        if (response.success && response.data) {
+          const cv = response.data;
+          
+          // Parse contacts to extract email and phone
+          const contactParts = cv.contacts?.split(', ') || [];
+          const emailContact = contactParts.find(c => c.startsWith('Email:'))?.replace('Email: ', '') || '';
+          const phoneContact = contactParts.find(c => c.startsWith('Phone:'))?.replace('Phone: ', '') || '';
+          
+          // Parse other contacts
+          const otherContacts = contactParts
+            .filter(c => !c.startsWith('Email:') && !c.startsWith('Phone:'))
+            .map(c => {
+              const [type, ...valueParts] = c.split(': ');
+              return { type, value: valueParts.join(': ') };
+            });
+          
+          // Parse phone to extract country code
+          let extractedCountryCode = '+84';
+          let extractedPhone = phoneContact;
+          for (const cc of countryCodes) {
+            if (phoneContact.startsWith(cc.code)) {
+              extractedCountryCode = cc.code;
+              extractedPhone = phoneContact.substring(cc.code.length);
+              break;
+            }
+          }
+          
+          // Set form data
+          setFormData({
+            fullName: cv.fullName || '',
+            email: emailContact,
+            phone: phoneContact,
+            address: cv.workLocation || '',
+            title: cv.jobtitle || '',
+            summary: cv.aboutMe || '',
+            portfolioUrl: cv.portfolioUrl || '',
+            desiredJobTitle: cv.desiredJobTitle || '',
+            workLocation: cv.workLocation || '',
+            jobType: cv.jobType || 'Full-time',
+            achievements: cv.achievements || '',
+            contacts: cv.contacts || '',
+            photo: cv.avatarUrl || '',
+          });
+          
+          setCountryCode(extractedCountryCode);
+          setPhoneWithoutCode(extractedPhone);
+          setSelectedTemplate(cv.template || 'simple');
+          
+          // Set skills
+          if (cv.skills && cv.skills.length > 0) {
+            setSkills(cv.skills);
+          }
+          
+          // Set work experiences
+          if (cv.workExperiences && cv.workExperiences.length > 0) {
+            setWorkExperiences(cv.workExperiences.map(exp => ({
+              ...exp,
+              startDate: exp.startDate ? new Date(exp.startDate).toISOString().split('T')[0] : '',
+              endDate: exp.endDate ? new Date(exp.endDate).toISOString().split('T')[0] : '',
+            })));
+          }
+          
+          // Set educations
+          if (cv.educations && cv.educations.length > 0) {
+            setEducations(cv.educations.map(edu => ({
+              ...edu,
+              startDate: edu.startDate ? new Date(edu.startDate).toISOString().split('T')[0] : '',
+              endDate: edu.endDate ? new Date(edu.endDate).toISOString().split('T')[0] : '',
+            })));
+          }
+          
+          // Set additional contacts
+          if (otherContacts.length > 0) {
+            setAdditionalContacts(otherContacts);
+          }
+          
+          toast({
+            title: "CV Loaded",
+            description: "CV data has been loaded for editing",
+          });
+        } else {
+          notifyError(response.message || "Failed to load CV");
+        }
+      } catch (error) {
+        notifyError("Failed to load CV data");
+        console.error(error);
+      } finally {
+        setIsLoadingCV(false);
+      }
+    };
+
+    loadCVData();
+  }, [editingCVId, toast]);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
@@ -302,31 +415,150 @@ const CVBuilder = () => {
           })),
       };
 
-      const response = await cvService.createCV(cvData);
-      if (response.success) {
-        notifySuccess("CV saved successfully!");
+      // Check if we're updating or creating
+      let response;
+      if (editingCVId) {
+        // Update existing CV
+        response = await cvService.updateCV(editingCVId, cvData);
+        if (response.success) {
+          notifySuccess("CV updated successfully!");
+        } else {
+          notifyError(response.message);
+        }
       } else {
-        notifyError(response.message);
+        // Create new CV
+        response = await cvService.createCV(cvData);
+        if (response.success) {
+          notifySuccess("CV created successfully!");
+        } else {
+          notifyError(response.message);
+        }
       }
     } catch (error) {
-      notifyError("Failed to save CV");
+      notifyError(editingCVId ? "Failed to update CV" : "Failed to create CV");
+      console.error(error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleAIGenerate = () => {
+  const handleAIGenerate = async () => {
+    const user = authService.getUser();
+    if (!user) {
+      notifyError("Please login to use AI review");
+      return;
+    }
+
     setIsGenerating(true);
-    setTimeout(() => {
-      setIsGenerating(false);
-      setAiSuggestion(
-        "Gợi ý: Nhấn mạnh thành tựu định lượng (ví dụ: tăng 25% hiệu suất hệ thống, giảm 40% lỗi sản xuất) và thêm 5–7 kỹ năng liên quan tới vị trí mục tiêu."
-      );
-      toast({
-        title: "CV Generated",
-        description: "Your CV has been generated with AI assistance!",
+    try {
+      // Compile contacts
+      const contactParts: string[] = [];
+      if (formData.email) contactParts.push(`Email: ${formData.email}`);
+      if (formData.phone) contactParts.push(`Phone: ${formData.phone}`);
+      additionalContacts.forEach(contact => {
+        if (contact.value.trim()) {
+          contactParts.push(`${contact.type}: ${contact.value}`);
+        }
       });
-    }, 2000);
+      const compiledContacts = contactParts.join(", ");
+
+      // Prepare request with default values for empty fields
+      const requestData = {
+        template: selectedTemplate || "simple",
+        fullName: formData.fullName || "Sample Name",
+        jobtitle: formData.title || "Sample Job Title",
+        aboutMe: formData.summary || "Sample professional summary",
+        portfolioUrl: formData.portfolioUrl || "",
+        avatarUrl: formData.photo || "",
+        desiredJobTitle: formData.desiredJobTitle || formData.title || "Sample Job Title",
+        workLocation: formData.workLocation || formData.address || "Sample Location",
+        jobType: formData.jobType || "Full-time",
+        achievements: formData.achievements || "",
+        contacts: compiledContacts || "Email: sample@email.com",
+        isActive: true,
+        candidtateId: user.id,
+        skills: skills
+          .filter(s => s.skillName.trim() !== "")
+          .map(s => ({
+            profileId: user.id,
+            skillName: s.skillName,
+            proficiencyLevel: s.proficiencyLevel,
+          })),
+        workExperiences: workExperiences
+          .filter(w => w.companyName.trim() !== "")
+          .map(w => ({
+            profileId: user.id,
+            companyName: w.companyName,
+            position: w.position,
+            startDate: w.startDate ? new Date(w.startDate).toISOString() : new Date().toISOString(),
+            endDate: w.endDate ? new Date(w.endDate).toISOString() : new Date().toISOString(),
+            description: w.description,
+          })),
+        educations: educations
+          .filter(e => e.schoolName.trim() !== "")
+          .map(e => ({
+            profileId: user.id,
+            schoolName: e.schoolName,
+            degree: e.degree,
+            major: e.major,
+            grade: e.grade,
+            startDate: e.startDate ? new Date(e.startDate).toISOString() : new Date().toISOString(),
+            endDate: e.endDate ? new Date(e.endDate).toISOString() : new Date().toISOString(),
+            description: e.description,
+          })),
+      };
+
+      const response = await aiCvSuggestService.suggestCV(requestData);
+      
+      if (response.success && response.data) {
+        setAiReview(response.data);
+        toast({
+          title: "AI Review Completed",
+          description: `Your CV score: ${response.data.score}/100`,
+        });
+      } else {
+        notifyError(response.message || "Failed to get AI review");
+      }
+    } catch (error) {
+      notifyError("Failed to get AI review");
+      console.error(error);
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Handle showing AI detail modal
+  const handleShowStrengths = () => {
+    if (aiReview?.strengths) {
+      setAiDetailContent({
+        title: 'Strengths',
+        type: 'strengths',
+        items: aiReview.strengths
+      });
+      setShowAIDetailModal(true);
+    }
+  };
+
+  const handleShowWeaknesses = () => {
+    if (aiReview?.weaknesses) {
+      setAiDetailContent({
+        title: 'Areas to Improve',
+        type: 'weaknesses',
+        items: aiReview.weaknesses
+      });
+      setShowAIDetailModal(true);
+    }
+  };
+
+  const handleShowSuggestions = () => {
+    if (aiReview?.suggestions) {
+      setAiDetailContent({
+        title: 'AI Suggestions',
+        type: 'suggestions',
+        items: aiReview.suggestions
+      });
+      setShowAIDetailModal(true);
+    }
   };
 
   // Use a single consistent border color for all templates
@@ -379,39 +611,59 @@ const CVBuilder = () => {
     <div className="min-h-screen bg-background">
       <Navbar />
       
-      <div className="container mx-auto px-4 py-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="flex justify-between items-center mb-8">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{t("cvBuilder.title")}</h1>
-              <p className="text-muted-foreground">{t("cvBuilder.subtitle")}</p>
-            </div>
-            <div className="flex gap-3">
-              <Button asChild variant="outline">
-                <Link to="/cv-manager">{t("cvBuilder.viewAllCVs")}</Link>
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={() => setShowPreview(true)}
-                disabled={!formData.fullName}
-              >
-                <Eye className="h-4 w-4 mr-2" />
-                {t("cvBuilder.previewCV")}
-              </Button>
-              <Button 
-                onClick={handleSaveCV}
-                disabled={!formData.fullName || isSaving}
-                className="gradient-primary shadow-glow"
-              >
-                {isSaving ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <FileText className="h-4 w-4 mr-2" />
-                )}
-                {isSaving ? "Saving..." : "Save CV"}
-              </Button>
-            </div>
+      {/* Loading CV Data */}
+      {isLoadingCV && (
+        <div className="container mx-auto px-4 py-8 flex items-center justify-center min-h-[60vh]">
+          <div className="text-center">
+            <Loader2 className="h-12 w-12 animate-spin mx-auto mb-4 text-primary" />
+            <p className="text-muted-foreground">Loading CV data...</p>
           </div>
+        </div>
+      )}
+      
+      {!isLoadingCV && (
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-5xl mx-auto">
+            <div className="flex justify-between items-center mb-8">
+              <div>
+                <h1 className="text-4xl font-bold mb-2">
+                  {editingCVId ? "Edit CV" : t("cvBuilder.title")}
+                </h1>
+                <p className="text-muted-foreground">
+                  {editingCVId ? "Update your CV information" : t("cvBuilder.subtitle")}
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <Button asChild variant="outline">
+                  <Link to="/cv-manager">{t("cvBuilder.viewAllCVs")}</Link>
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowPreview(true)}
+                  disabled={!formData.fullName}
+                >
+                  <Eye className="h-4 w-4 mr-2" />
+                  {t("cvBuilder.previewCV")}
+                </Button>
+                <Button 
+                  onClick={handleSaveCV}
+                  disabled={!formData.fullName || isSaving}
+                  className="gradient-primary shadow-glow"
+                >
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      {editingCVId ? "Updating..." : "Saving..."}
+                    </>
+                  ) : (
+                    <>
+                      <FileText className="h-4 w-4 mr-2" />
+                      {editingCVId ? "Update CV" : "Save CV"}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </div>
 
           {/* Template Selection */}
           <Card className="p-6 mb-6 bg-card">
@@ -1261,7 +1513,7 @@ const CVBuilder = () => {
 
             {/* AI Assistant */}
             <div className="space-y-6">
-              <Card className="p-6 sticky top-4 bg-card">
+              <Card className="p-6 sticky top-4 bg-card max-h-[calc(100vh-2rem)] overflow-y-auto">
                 <div className="flex items-center gap-2 mb-4">
                   <div className="gradient-primary p-2 rounded-lg">
                     <Sparkles className="h-5 w-5 text-white" />
@@ -1272,19 +1524,181 @@ const CVBuilder = () => {
                 <Button 
                   className="w-full gradient-primary mb-4"
                   onClick={handleAIGenerate}
-                  disabled={isGenerating || !formData.fullName}
+                  disabled={isGenerating}
                 >
-                  <FileText className="h-4 w-4 mr-2" />
-                  {isGenerating ? t("cvBuilder.generating") : t("cvBuilder.aiGenerate")}
+                  {isGenerating ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Reviewing...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      AI Review CV
+                    </>
+                  )}
                 </Button>
 
-                {aiSuggestion && (
-                  <div className="p-4 bg-accent-light rounded-lg border border-accent/20">
-                    <p className="text-sm text-foreground">{aiSuggestion}</p>
+                {/* Loading State */}
+                {isGenerating && (
+                  <div className="space-y-4 mb-4 animate-pulse">
+                    {/* Score Skeleton */}
+                    <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="h-4 bg-muted rounded w-20"></div>
+                        <div className="h-8 bg-muted rounded w-16"></div>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2"></div>
+                    </div>
+
+                    {/* Strengths Skeleton */}
+                    <div className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                      <div className="h-5 bg-green-200 dark:bg-green-800 rounded w-24 mb-2"></div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-green-200 dark:bg-green-800 rounded w-full"></div>
+                        <div className="h-3 bg-green-200 dark:bg-green-800 rounded w-5/6"></div>
+                        <div className="h-3 bg-green-200 dark:bg-green-800 rounded w-4/5"></div>
+                      </div>
+                    </div>
+
+                    {/* Weaknesses Skeleton */}
+                    <div className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                      <div className="h-5 bg-orange-200 dark:bg-orange-800 rounded w-32 mb-2"></div>
+                      <div className="space-y-2">
+                        <div className="h-3 bg-orange-200 dark:bg-orange-800 rounded w-full"></div>
+                        <div className="h-3 bg-orange-200 dark:bg-orange-800 rounded w-5/6"></div>
+                      </div>
+                    </div>
+
+                    {/* Suggestions Skeleton */}
+                    <div className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <div className="h-5 bg-blue-200 dark:bg-blue-800 rounded w-28 mb-2"></div>
+                      <div className="space-y-3">
+                        <div>
+                          <div className="h-4 bg-blue-200 dark:bg-blue-800 rounded w-3/4 mb-1"></div>
+                          <div className="h-3 bg-blue-200 dark:bg-blue-800 rounded w-full"></div>
+                        </div>
+                        <div>
+                          <div className="h-4 bg-blue-200 dark:bg-blue-800 rounded w-2/3 mb-1"></div>
+                          <div className="h-3 bg-blue-200 dark:bg-blue-800 rounded w-5/6"></div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="text-center text-sm text-muted-foreground flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      AI is analyzing your CV...
+                    </div>
                   </div>
                 )}
 
-                <div className="mt-4 space-y-2">
+                {/* AI Review Results */}
+                {!isGenerating && aiReview && (
+                  <div className="space-y-4 mb-4">
+                    {/* Score */}
+                    <div className="p-4 bg-gradient-to-r from-primary/10 to-accent/10 rounded-lg border border-primary/20">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="font-semibold text-foreground">CV Score</span>
+                        <span className="text-2xl font-bold text-primary">{aiReview.score}/100</span>
+                      </div>
+                      <div className="w-full bg-muted rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-primary to-accent h-2 rounded-full transition-all duration-500"
+                          style={{ width: `${aiReview.score}%` }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Strengths */}
+                    {aiReview.strengths && aiReview.strengths.length > 0 && (
+                      <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleShowStrengths}
+                        onKeyDown={(e) => e.key === 'Enter' && handleShowStrengths()}
+                        className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200"
+                      >
+                        <h4 className="font-semibold text-green-800 dark:text-green-400 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">✓</span> Strengths
+                          </span>
+                          <span className="text-xs text-green-600 dark:text-green-500">Click to view all</span>
+                        </h4>
+                        <ul className="space-y-1 text-sm text-green-700 dark:text-green-300">
+                          {aiReview.strengths.slice(0, 3).map((strength, index) => (
+                            <li key={index} className="line-clamp-2">• {strength}</li>
+                          ))}
+                          {aiReview.strengths.length > 3 && (
+                            <li className="text-xs italic">+{aiReview.strengths.length - 3} more...</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Weaknesses */}
+                    {aiReview.weaknesses && aiReview.weaknesses.length > 0 && (
+                      <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleShowWeaknesses}
+                        onKeyDown={(e) => e.key === 'Enter' && handleShowWeaknesses()}
+                        className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200"
+                      >
+                        <h4 className="font-semibold text-orange-800 dark:text-orange-400 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">⚠</span> Areas to Improve
+                          </span>
+                          <span className="text-xs text-orange-600 dark:text-orange-500">Click to view all</span>
+                        </h4>
+                        <ul className="space-y-1 text-sm text-orange-700 dark:text-orange-300">
+                          {aiReview.weaknesses.slice(0, 3).map((weakness, index) => (
+                            <li key={index} className="line-clamp-2">• {weakness}</li>
+                          ))}
+                          {aiReview.weaknesses.length > 3 && (
+                            <li className="text-xs italic">+{aiReview.weaknesses.length - 3} more...</li>
+                          )}
+                        </ul>
+                      </div>
+                    )}
+
+                    {/* Suggestions */}
+                    {aiReview.suggestions && aiReview.suggestions.length > 0 && (
+                      <div 
+                        role="button"
+                        tabIndex={0}
+                        onClick={handleShowSuggestions}
+                        onKeyDown={(e) => e.key === 'Enter' && handleShowSuggestions()}
+                        className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800 cursor-pointer hover:shadow-md hover:scale-[1.02] transition-all duration-200"
+                      >
+                        <h4 className="font-semibold text-blue-800 dark:text-blue-400 mb-2 flex items-center justify-between">
+                          <span className="flex items-center gap-2">
+                            <span className="text-lg">💡</span> AI Suggestions
+                          </span>
+                          <span className="text-xs text-blue-600 dark:text-blue-500">Click to view all</span>
+                        </h4>
+                        <div className="space-y-3 text-sm">
+                          {aiReview.suggestions.slice(0, 2).map((suggestion, index) => (
+                            <div key={index} className="space-y-1">
+                              <p className="font-medium text-blue-900 dark:text-blue-300">
+                                {suggestion.section} - {suggestion.subSection}
+                              </p>
+                              <p className="text-blue-700 dark:text-blue-400 text-xs line-clamp-2">
+                                {suggestion.reason}
+                              </p>
+                            </div>
+                          ))}
+                          {aiReview.suggestions.length > 2 && (
+                            <p className="text-xs italic text-blue-600 dark:text-blue-400">
+                              +{aiReview.suggestions.length - 2} more suggestions...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="space-y-2 mb-4">
                   <Button variant="outline" className="w-full justify-start">
                     {t("cvBuilder.improveSummary")}
                   </Button>
@@ -1293,6 +1707,27 @@ const CVBuilder = () => {
                   </Button>
                   <Button variant="outline" className="w-full justify-start">
                     {t("cvBuilder.checkGrammar")}
+                  </Button>
+                </div>
+
+                {/* Save CV Button */}
+                <div className="pt-4 border-t border-border">
+                  <Button 
+                    onClick={handleSaveCV}
+                    disabled={!formData.fullName || isSaving}
+                    className="w-full gradient-primary shadow-glow"
+                  >
+                    {isSaving ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        {editingCVId ? "Updating..." : "Saving..."}
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="h-4 w-4 mr-2" />
+                        {editingCVId ? "Update CV" : "Save CV"}
+                      </>
+                    )}
                   </Button>
                 </div>
               </Card>
@@ -1320,7 +1755,135 @@ const CVBuilder = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* AI Detail Modal */}
+        <Dialog open={showAIDetailModal} onOpenChange={setShowAIDetailModal}>
+          <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto bg-card">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2 text-xl">
+                {aiDetailContent.type === 'strengths' && (
+                  <>
+                    <span className="text-green-600 dark:text-green-400">✓</span>
+                    <span>{aiDetailContent.title}</span>
+                  </>
+                )}
+                {aiDetailContent.type === 'weaknesses' && (
+                  <>
+                    <span className="text-orange-600 dark:text-orange-400">⚠</span>
+                    <span>{aiDetailContent.title}</span>
+                  </>
+                )}
+                {aiDetailContent.type === 'suggestions' && (
+                  <>
+                    <span className="text-blue-600 dark:text-blue-400">💡</span>
+                    <span>{aiDetailContent.title}</span>
+                  </>
+                )}
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="mt-4">
+              {aiDetailContent.type === 'strengths' && (
+                <div className="space-y-3">
+                  {(aiDetailContent.items as string[]).map((strength, index: number) => (
+                    <div 
+                      key={index} 
+                      className="p-4 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800"
+                    >
+                      <div className="flex gap-3">
+                        <span className="text-green-600 dark:text-green-400 font-bold flex-shrink-0">
+                          {index + 1}.
+                        </span>
+                        <p className="text-green-800 dark:text-green-300">{strength}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {aiDetailContent.type === 'weaknesses' && (
+                <div className="space-y-3">
+                  {(aiDetailContent.items as string[]).map((weakness, index: number) => (
+                    <div 
+                      key={index} 
+                      className="p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg border border-orange-200 dark:border-orange-800"
+                    >
+                      <div className="flex gap-3">
+                        <span className="text-orange-600 dark:text-orange-400 font-bold flex-shrink-0">
+                          {index + 1}.
+                        </span>
+                        <p className="text-orange-800 dark:text-orange-300">{weakness}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {aiDetailContent.type === 'suggestions' && (
+                <div className="space-y-4">
+                  {(aiDetailContent.items as AICVSuggestion[]).map((suggestion, index: number) => (
+                    <div 
+                      key={index} 
+                      className="p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800"
+                    >
+                      <div className="flex gap-3">
+                        <span className="text-blue-600 dark:text-blue-400 font-bold flex-shrink-0 text-lg">
+                          {index + 1}.
+                        </span>
+                        <div className="flex-1 space-y-3">
+                          <div>
+                            <p className="font-semibold text-blue-900 dark:text-blue-300 mb-1">
+                              {suggestion.section} - {suggestion.subSection}
+                            </p>
+                          </div>
+                          
+                          {suggestion.originalText && (
+                            <div className="bg-white dark:bg-gray-900 p-3 rounded border border-blue-200 dark:border-blue-800">
+                              <p className="text-xs font-semibold text-blue-800 dark:text-blue-400 mb-1">
+                                Original:
+                              </p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300 italic">
+                                "{suggestion.originalText}"
+                              </p>
+                            </div>
+                          )}
+
+                          {suggestion.suggestedText && (
+                            <div className="bg-white dark:bg-gray-900 p-3 rounded border border-green-200 dark:border-green-800">
+                              <p className="text-xs font-semibold text-green-800 dark:text-green-400 mb-1">
+                                Suggested:
+                              </p>
+                              <p className="text-sm text-gray-700 dark:text-gray-300">
+                                "{suggestion.suggestedText}"
+                              </p>
+                            </div>
+                          )}
+
+                          <div className="bg-blue-100 dark:bg-blue-900/30 p-3 rounded">
+                            <p className="text-xs font-semibold text-blue-900 dark:text-blue-300 mb-1">
+                              Reason:
+                            </p>
+                            <p className="text-sm text-blue-800 dark:text-blue-300">
+                              {suggestion.reason}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <Button variant="outline" onClick={() => setShowAIDetailModal(false)}>
+                Close
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
+      )}
     </div>
   );
 };
