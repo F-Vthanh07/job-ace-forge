@@ -26,12 +26,21 @@ export interface CompanyData {
   businessLicenseUrl: string;
   verificationStatus: string;
   createTime: string;
+  notiMess?: string;
 }
 
 export interface CompaniesResponse {
   success: boolean;
   message: string;
   data?: CompanyData[];
+}
+
+export interface InviteCodeResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    inviteCode: string;
+  };
 }
 
 class CompanyService {
@@ -211,6 +220,106 @@ class CompanyService {
       };
     } catch (error) {
       console.error("❌ Error verifying company:", error);
+      return {
+        success: false,
+        message: "Lỗi kết nối. Vui lòng thử lại.",
+      };
+    }
+  }
+
+  /**
+   * Get company invite code
+   */
+  async getCompanyInviteCode(companyId: string): Promise<InviteCodeResponse> {
+    try {
+      console.log("📤 Fetching invite code for company:", companyId);
+      
+      const response = await fetch(`${API_BASE_URL}/Company/get-company-inivteCode/${companyId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const responseText = await response.text();
+      console.log("📥 Response status:", response.status);
+      console.log("📥 Response text:", responseText);
+
+      // Helper function to extract invite code from response text
+      const extractInviteCode = (text: string): string => {
+        const prefix = "Your company invite code:";
+        if (text.includes(prefix)) {
+          return text.replace(prefix, "").trim();
+        }
+        return text.trim();
+      };
+
+      // If response is 404 or empty, company doesn't have invite code yet
+      if (response.status === 404 || !responseText) {
+        return {
+          success: false,
+          message: "Company does not have an invite code yet",
+        };
+      }
+
+      let result: Record<string, unknown> = {};
+      try {
+        result = JSON.parse(responseText);
+      } catch (parseError) {
+        console.warn("⚠️ Failed to parse JSON response:", parseError);
+        // If response is plain text (just the invite code)
+        if (response.ok && responseText.trim()) {
+          return {
+            success: true,
+            message: "Invite code found",
+            data: { inviteCode: extractInviteCode(responseText) },
+          };
+        }
+        result = {
+          success: response.ok,
+          message: responseText,
+        };
+      }
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: typeof result.message === 'string' ? result.message : "Failed to fetch invite code",
+        };
+      }
+
+      // Handle different response formats
+      if (typeof result === 'string') {
+        return {
+          success: true,
+          message: "Invite code found",
+          data: { inviteCode: extractInviteCode(result) },
+        };
+      }
+
+      if (result.inviteCode && typeof result.inviteCode === 'string') {
+        return {
+          success: true,
+          message: "Invite code found",
+          data: { inviteCode: extractInviteCode(result.inviteCode) },
+        };
+      }
+
+      if (result.data && typeof result.data === 'object' && 'inviteCode' in result.data) {
+        const inviteCodeRaw = (result.data as { inviteCode: string }).inviteCode;
+        return {
+          success: true,
+          message: "Invite code found",
+          data: { inviteCode: extractInviteCode(inviteCodeRaw) },
+        };
+      }
+
+      return {
+        success: false,
+        message: "Invalid response format",
+      };
+    } catch (error) {
+      console.error("❌ Error fetching invite code:", error);
       return {
         success: false,
         message: "Lỗi kết nối. Vui lòng thử lại.",

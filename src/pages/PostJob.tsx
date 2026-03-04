@@ -9,7 +9,6 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Sparkles, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { jobService, JobPostingRequest } from "@/services/jobService";
-import { companyService } from "@/services/companyService";
 import { notifyError, notifySuccess } from "@/utils/notification";
 import { useNavigate } from "react-router-dom";
 
@@ -67,9 +66,9 @@ const PostJob = () => {
       console.log("✅ All validations passed");
 
       // Get recruiter info from localStorage (for validation only)
-      const userDataString = localStorage.getItem("userData");
+      const userDataString = localStorage.getItem("user");
       if (!userDataString) {
-        console.log("❌ No userData in localStorage");
+        console.log("❌ No user data in localStorage");
         notifyError({ title: "Error", description: "User data not found. Please login again." });
         navigate("/recruiter-login");
         return;

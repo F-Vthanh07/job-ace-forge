@@ -18,56 +18,75 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Users, Search, Shield, Ban, Mail } from "lucide-react";
+import { Users, Search, Shield, Ban, Mail, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { getAllNonAdminUsers, User } from "@/services/userService";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminUsers = () => {
-  const users = [
-    {
-      id: 1,
-      name: "John Doe",
-      email: "john@example.com",
-      role: "candidate",
-      status: "active",
-      plan: "Premium",
-      joinDate: "2024-01-15"
-    },
-    {
-      id: 2,
-      name: "Jane Smith",
-      email: "jane@example.com",
-      role: "candidate",
-      status: "active",
-      plan: "Free",
-      joinDate: "2024-02-20"
-    },
-    {
-      id: 3,
-      name: "Tech Corp",
-      email: "hr@techcorp.com",
-      role: "business",
-      status: "active",
-      plan: "Professional",
-      joinDate: "2024-01-10"
-    },
-    {
-      id: 4,
-      name: "Design Studio",
-      email: "contact@designstudio.com",
-      role: "business",
-      status: "active",
-      plan: "Enterprise",
-      joinDate: "2023-12-05"
-    },
-    {
-      id: 5,
-      name: "Bob Wilson",
-      email: "bob@example.com",
-      role: "candidate",
-      status: "suspended",
-      plan: "Free",
-      joinDate: "2024-03-01"
+  const [users, setUsers] = useState<User[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [roleFilter, setRoleFilter] = useState("all");
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  useEffect(() => {
+    filterUsers();
+  }, [users, searchQuery, roleFilter]);
+
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getAllNonAdminUsers();
+      setUsers(data);
+      setFilteredUsers(data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load users. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
-  ];
+  };
+
+  const filterUsers = () => {
+    let filtered = [...users];
+
+    // Search filter
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (user) =>
+          user.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          user.email.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+
+    // Role filter
+    if (roleFilter !== "all") {
+      filtered = filtered.filter(
+        (user) => user.role.toLowerCase() === roleFilter.toLowerCase()
+      );
+    }
+
+    setFilteredUsers(filtered);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -91,27 +110,18 @@ const AdminUsers = () => {
               <Input 
                 placeholder="Search users by name or email..." 
                 className="pl-10"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
-            <Select defaultValue="all">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
               <SelectTrigger className="w-48">
                 <SelectValue placeholder="Filter by role" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="candidate">Candidates</SelectItem>
-                <SelectItem value="business">Businesses</SelectItem>
-                <SelectItem value="admin">Admins</SelectItem>
-              </SelectContent>
-            </Select>
-            <Select defaultValue="all-status">
-              <SelectTrigger className="w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all-status">All Status</SelectItem>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="suspended">Suspended</SelectItem>
+                <SelectItem value="recruiter">Recruiters</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -123,52 +133,65 @@ const AdminUsers = () => {
               <TableRow>
                 <TableHead>User</TableHead>
                 <TableHead>Email</TableHead>
+                <TableHead>Phone</TableHead>
+                <TableHead>Gender</TableHead>
                 <TableHead>Role</TableHead>
-                <TableHead>Plan</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Join Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {users.map((user) => (
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <div className="flex items-center justify-center gap-2">
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                      <span>Loading users...</span>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )}
+              
+              {!isLoading && filteredUsers.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No users found
+                  </TableCell>
+                </TableRow>
+              )}
+              
+              {!isLoading && filteredUsers.length > 0 && filteredUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell className="font-medium">{user.name}</TableCell>
+                  <TableCell className="font-medium">{user.fullName}</TableCell>
                   <TableCell>{user.email}</TableCell>
+                  <TableCell>{user.phoneNumber}</TableCell>
                   <TableCell>
                     <Badge variant="outline">
+                      {user.gender}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge 
+                      variant="secondary"
+                      className={user.role.toLowerCase() === "recruiter" ? "gradient-primary" : ""}
+                    >
                       {user.role}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <Badge 
-                      className={user.plan !== "Free" ? "gradient-primary" : ""}
-                      variant={user.plan !== "Free" ? "default" : "secondary"}
-                    >
-                      {user.plan}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={user.status === "active" ? "default" : "destructive"}
-                      className={user.status === "active" ? "bg-success" : ""}
-                    >
-                      {user.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{user.joinDate}</TableCell>
+                  <TableCell>{formatDate(user.createTime)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" title="Send email">
                         <Mail className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" title="Manage permissions">
                         <Shield className="h-4 w-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        className={user.status === "active" ? "text-destructive" : "text-success"}
+                        title="Ban/Unban user"
+                        className="text-destructive"
                       >
                         <Ban className="h-4 w-4" />
                       </Button>

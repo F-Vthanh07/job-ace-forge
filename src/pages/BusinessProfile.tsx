@@ -4,14 +4,20 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2, Upload, Loader2, ExternalLink } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Building2, Upload, Loader2, ExternalLink, UserPlus, Copy, Check } from "lucide-react";
+import { useEffect, useState, useCallback } from "react";
 import { companyService, CompanyData } from "@/services/companyService";
-import { notifyError } from "@/utils/notification";
+import { notifyError, notifySuccess } from "@/utils/notification";
+import { authService } from "@/services/authService";
 
 const BusinessProfile = () => {
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [inviteCode, setInviteCode] = useState("");
+  const [createdInviteCode, setCreatedInviteCode] = useState("");
+  const [isCreatingCode, setIsCreatingCode] = useState(false);
+  const [codeCopied, setCodeCopied] = useState(false);
+  const [loadingInviteCode, setLoadingInviteCode] = useState(false);
 
   useEffect(() => {
     loadCompanyData();
@@ -43,6 +49,95 @@ const BusinessProfile = () => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchExistingInviteCode = useCallback(async () => {
+    if (!companyData?.id) return;
+    
+    try {
+      setLoadingInviteCode(true);
+      const response = await companyService.getCompanyInviteCode(companyData.id);
+      
+      if (response.success && response.data?.inviteCode) {
+        console.log("✅ Found existing invite code:", response.data.inviteCode);
+        setCreatedInviteCode(response.data.inviteCode);
+      } else {
+        console.log("ℹ️ No existing invite code found");
+      }
+    } catch (error) {
+      console.error("❌ Error fetching invite code:", error);
+    } finally {
+      setLoadingInviteCode(false);
+    }
+  }, [companyData?.id]);
+
+  useEffect(() => {
+    if (companyData?.id) {
+      fetchExistingInviteCode();
+    }
+  }, [companyData?.id, fetchExistingInviteCode]);
+
+  const handleCreateInviteCode = async () => {
+    if (!inviteCode.trim()) {
+      notifyError({
+        title: "Lỗi",
+        description: "Vui lòng nhập mã mời"
+      });
+      return;
+    }
+
+    if (inviteCode.length > 10) {
+      notifyError({
+        title: "Lỗi",
+        description: "Mã mời không được quá 10 ký tự"
+      });
+      return;
+    }
+
+    try {
+      setIsCreatingCode(true);
+      const response = await authService.createInviteCode(inviteCode);
+
+      if (response.success) {
+        setCreatedInviteCode(inviteCode);
+        notifySuccess({
+          title: "Thành công",
+          description: response.message || "Tạo mã mời thành công!"
+        });
+        setInviteCode("");
+      } else {
+        notifyError({
+          title: "Lỗi",
+          description: response.message || "Không thể tạo mã mời"
+        });
+      }
+    } catch (error) {
+      console.error("Error creating invite code:", error);
+      notifyError({
+        title: "Lỗi",
+        description: "Đã xảy ra lỗi khi tạo mã mời"
+      });
+    } finally {
+      setIsCreatingCode(false);
+    }
+  };
+
+  const handleCopyCode = async () => {
+    try {
+      await navigator.clipboard.writeText(createdInviteCode);
+      setCodeCopied(true);
+      notifySuccess({
+        title: "Đã sao chép",
+        description: "Mã mời đã được sao chép vào clipboard"
+      });
+      setTimeout(() => setCodeCopied(false), 2000);
+    } catch (error) {
+      console.error("Error copying code:", error);
+      notifyError({
+        title: "Lỗi",
+        description: "Không thể sao chép mã mời"
+      });
     }
   };
 
@@ -86,6 +181,85 @@ const BusinessProfile = () => {
           </div>
 
           <div className="space-y-6">
+            <Card className="p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="gradient-primary p-2 rounded-lg shadow-glow">
+                  <UserPlus className="h-6 w-6 text-primary-foreground" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold">Invite Employees</h2>
+                  <p className="text-sm text-muted-foreground">Create an invite code to add employees to your company</p>
+                </div>
+              </div>
+
+              {loadingInviteCode ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  <span className="ml-2 text-muted-foreground">Checking for existing invite code...</span>
+                </div>
+              ) : createdInviteCode ? (
+                <div className="p-4 bg-success/10 border border-success/20 rounded-lg">
+                  <div className="flex items-center justify-between gap-4">
+                    <p className="text-2xl font-bold font-mono flex-1">{createdInviteCode}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleCopyCode}
+                      className="gap-2"
+                    >
+                      {codeCopied ? (
+                        <>
+                          <Check className="h-4 w-4" />
+                          Copied!
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-4 w-4" />
+                          Copy
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="inviteCode">Create Invite Code</Label>
+                    <div className="flex gap-2 mt-1">
+                      <Input 
+                        id="inviteCode"
+                        placeholder="Enter code (max 10 characters)"
+                        value={inviteCode}
+                        onChange={(e) => setInviteCode(e.target.value.slice(0, 10))}
+                        maxLength={10}
+                        disabled={isCreatingCode}
+                      />
+                      <Button 
+                        onClick={handleCreateInviteCode}
+                        disabled={isCreatingCode || !inviteCode.trim()}
+                        className="gradient-primary shadow-glow whitespace-nowrap"
+                      >
+                        {isCreatingCode ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating...
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="h-4 w-4 mr-2" />
+                            Create Code
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {inviteCode.length}/10 characters
+                    </p>
+                  </div>
+                </div>
+              )}
+            </Card>
+
             <Card className="p-6">
               <h2 className="text-2xl font-bold mb-6">Company Logo</h2>
               <div className="flex items-center gap-6">
