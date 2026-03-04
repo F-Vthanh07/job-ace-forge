@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Sparkles, User, Menu, X, Moon, Sun, Globe, LogOut } from "lucide-react";
+import { Sparkles, Menu, X, Moon, Sun, Globe, LogOut } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -33,10 +33,10 @@ export const Navbar = () => {
     loadUser();
     
     // Listen for storage changes (login/logout from other tabs or components)
-    window.addEventListener('storage', loadUser);
+    globalThis.addEventListener('storage', loadUser);
     
     return () => {
-      window.removeEventListener('storage', loadUser);
+      globalThis.removeEventListener('storage', loadUser);
     };
   }, []);
 
@@ -45,7 +45,8 @@ export const Navbar = () => {
     if (!user?.fullName) return "U";
     const names = user.fullName.trim().split(" ");
     if (names.length >= 2) {
-      return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+      const lastName = names.at(-1);
+      return (names[0][0] + (lastName?.[0] || "")).toUpperCase();
     }
     return names[0][0].toUpperCase();
   };
@@ -158,57 +159,57 @@ export const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {!isAdminPath && (
-                <>
-                  {/* Profile hover card with logout */}
-                  <HoverCard openDelay={80} closeDelay={100}>
-                    <HoverCardTrigger asChild>
-                      <Button variant="ghost" size="sm" className="gap-2">
-                        <Avatar className="h-6 w-6">
-                          <AvatarImage src="" alt="user" />
-                          <AvatarFallback className="text-xs">
-                            {getUserInitials()}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="hidden sm:inline">{user?.fullName || t("common.profile")}</span>
-                      </Button>
-                    </HoverCardTrigger>
-                    <HoverCardContent align="end" className="w-64">
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src="" alt="user" />
-                          <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                        </Avatar>
-                        <div className="text-sm">
-                          <div className="font-medium">{user?.fullName || t("common.yourAccount")}</div>
-                          <div className="text-muted-foreground">{user?.email || "user@example.com"}</div>
-                          {user?.role && (
-                            <div className="text-xs text-primary capitalize">{user.role}</div>
-                          )}
-                        </div>
-                      </div>
-                      <div className="mt-3 grid gap-2">
-                        <Button variant="outline" size="sm" asChild>
-                          <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>{t("common.viewProfile")}</Link>
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="justify-start text-destructive hover:text-destructive"
-                          onClick={handleLogout}
-                        >
-                          <LogOut className="h-4 w-4 mr-2" /> {t("common.logout")}
-                        </Button>
-                      </div>
-                    </HoverCardContent>
-                  </HoverCard>
-
-                  <Button size="sm" className="gradient-primary shadow-glow" asChild>
-                    <Link to={isRecruiterPath ? "/recruiter-premium" : "/premium"}>
-                      {t("common.upgrade")}
-                    </Link>
+              {/* Profile hover card with logout */}
+              <HoverCard openDelay={80} closeDelay={100}>
+                <HoverCardTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src="" alt="user" />
+                      <AvatarFallback className="text-xs">
+                        {getUserInitials()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="hidden sm:inline">{user?.fullName || t("common.profile")}</span>
                   </Button>
-                </>
+                </HoverCardTrigger>
+                <HoverCardContent align="end" className="w-64">
+                  <div className="flex items-center gap-3">
+                    <Avatar>
+                      <AvatarImage src="" alt="user" />
+                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                    </Avatar>
+                    <div className="text-sm">
+                      <div className="font-medium">{user?.fullName || t("common.yourAccount")}</div>
+                      <div className="text-muted-foreground">{user?.email || "user@example.com"}</div>
+                      {user?.role && (
+                        <div className="text-xs text-primary capitalize">{user.role}</div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="mt-3 grid gap-2">
+                    {!isAdminPath && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>{t("common.viewProfile")}</Link>
+                      </Button>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="justify-start text-destructive hover:text-destructive"
+                      onClick={handleLogout}
+                    >
+                      <LogOut className="h-4 w-4 mr-2" /> {t("common.logout")}
+                    </Button>
+                  </div>
+                </HoverCardContent>
+              </HoverCard>
+
+              {!isAdminPath && (
+                <Button size="sm" className="gradient-primary shadow-glow" asChild>
+                  <Link to={isRecruiterPath ? "/recruiter-premium" : "/premium"}>
+                    {t("common.upgrade")}
+                  </Link>
+                </Button>
               )}
             </div>
 
@@ -241,28 +242,28 @@ export const Navbar = () => {
                 </Link>
               ))}
               {!isAdminPath && (
-                <>
-                  <Link
-                    to={isRecruiterPath ? "/business-profile" : "/profile"}
-                    className="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {t("common.profile")}
-                  </Link>
-                  <button
-                    onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
-                    className="text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary text-destructive"
-                  >
-                    {t("common.logout")}
-                  </button>
-                  <Link
-                    to={isRecruiterPath ? "/recruiter-premium" : "/premium"}
-                    className="px-3 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground"
-                    onClick={() => setMobileMenuOpen(false)}
-                  >
-                    {t("common.upgrade")}
-                  </Link>
-                </>
+                <Link
+                  to={isRecruiterPath ? "/business-profile" : "/profile"}
+                  className="px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t("common.profile")}
+                </Link>
+              )}
+              <button
+                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                className="text-left px-3 py-2 rounded-md text-sm font-medium hover:bg-secondary text-destructive"
+              >
+                {t("common.logout")}
+              </button>
+              {!isAdminPath && (
+                <Link
+                  to={isRecruiterPath ? "/recruiter-premium" : "/premium"}
+                  className="px-3 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground"
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t("common.upgrade")}
+                </Link>
               )}
             </div>
           </div>

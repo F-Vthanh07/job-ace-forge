@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Building2, Loader2 } from "lucide-react";
 import { notifyError, notifySuccess, notifyWarning } from "@/utils/notification";
+import { joinCompanyByCode } from "@/services/userService";
 
 const JoinExistingCompany = () => {
   const navigate = useNavigate();
@@ -19,23 +20,40 @@ const JoinExistingCompany = () => {
     try {
       // Validate invite code
       if (!inviteCode.trim()) {
-        notifyWarning("Vui lòng nhập mã mời.");
+        notifyWarning({
+          title: "Thiếu thông tin",
+          description: "Vui lòng nhập mã mời."
+        });
         setLoading(false);
         return;
       }
 
-      // TODO: Call API to verify invite code and join company
-      // const response = await companyService.joinCompanyWithInviteCode(inviteCode);
+      console.log("🔄 Joining company with code:", inviteCode);
+      const response = await joinCompanyByCode(inviteCode.trim());
 
-      // For now, navigate to awaiting approval
-      // In production, store company info and verify the code with backend
-      sessionStorage.setItem("inviteCode", inviteCode);
-
-      notifySuccess("Đã gửi yêu cầu tham gia công ty!");
-      navigate("/awaiting-approval");
+      if (response.success) {
+        notifySuccess({
+          title: "Thành công",
+          description: response.message || "Đã tham gia công ty thành công!"
+        });
+        
+        // Store invite code for reference
+        sessionStorage.setItem("inviteCode", inviteCode);
+        
+        // Navigate to awaiting approval or dashboard
+        navigate("/awaiting-approval");
+      } else {
+        notifyError({
+          title: "Lỗi",
+          description: response.message || "Không thể tham gia công ty. Vui lòng kiểm tra mã mời."
+        });
+      }
     } catch (err) {
-      console.error("Error joining company:", err);
-      notifyError(err);
+      console.error("❌ Error joining company:", err);
+      notifyError({
+        title: "Lỗi",
+        description: err instanceof Error ? err.message : "Đã xảy ra lỗi khi tham gia công ty"
+      });
     } finally {
       setLoading(false);
     }
@@ -63,7 +81,7 @@ const JoinExistingCompany = () => {
               placeholder="Enter your invite code"
               className="mt-1 font-mono text-center text-lg tracking-widest"
               value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+              onChange={(e) => setInviteCode(e.target.value)}
               disabled={loading}
               required
             />

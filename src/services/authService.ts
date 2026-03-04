@@ -76,6 +76,19 @@ export interface JoinCompanyRequest {
   inviteCode: string;
 }
 
+export interface CreateInviteCodeRequest {
+  inviteCode: string;
+}
+
+export interface CreateInviteCodeResponse {
+  success: boolean;
+  message: string;
+  data?: {
+    inviteCode: string;
+    companyId?: string;
+  };
+}
+
 export interface CompanyResponse {
   success: boolean;
   message: string;
@@ -196,21 +209,15 @@ class AuthService {
       console.log("📥 Response status:", response.status);
       console.log("📥 Response text:", responseText);
 
-      // Try to parse as JSON, if it fails, treat as plain text
-      let result: Record<string, unknown> = {};
-      try {
-        result = JSON.parse(responseText);
-      } catch (e) {
-        // If response is plain text, wrap it
-        result = {
-          success: response.ok,
-          message: responseText,
-        };
-      }
-
       if (!response.ok) {
-        // Extract detailed error message from backend
-        const errorMessage = String(result.message || result.title || responseText || "Đăng ký không thành công.");
+        // Try to extract error message
+        let errorMessage = "Đăng ký không thành công.";
+        try {
+          const errorResult = JSON.parse(responseText);
+          errorMessage = String(errorResult.message || errorResult.title || responseText);
+        } catch {
+          errorMessage = responseText || errorMessage;
+        }
         console.error("❌ Registration failed:", errorMessage);
         return {
           success: false,
@@ -218,17 +225,43 @@ class AuthService {
         };
       }
 
-      // Save token if returned by backend
-      const resultData = result.data as Record<string, unknown> | undefined;
-      if (resultData && typeof resultData === "object" && "token" in resultData && typeof resultData.token === "string") {
-        localStorage.setItem("authToken", resultData.token);
-        console.log("✅ Token saved after registration");
+      // Parse response - format: "Account Id :uuid token: jwt"
+      // Example: "Account Id :iaac771e8-7008-466d-b07b-6d1fbaf8d75d token: eyJhbGci..."
+      let accountId = "";
+      let token = "";
+
+      // Try to extract Account Id and token from the response text
+      const accountIdMatch = responseText.match(/Account Id\s*:\s*([a-f0-9-]+)/i);
+      const tokenMatch = responseText.match(/token:\s*(\S+)/i);
+
+      if (accountIdMatch) {
+        accountId = accountIdMatch[1];
+      }
+      if (tokenMatch) {
+        token = tokenMatch[1];
+      }
+
+      console.log("📥 Parsed Account Id:", accountId);
+      console.log("📥 Parsed Token:", token ? "✅ Present" : "❌ Missing");
+
+      // Save token and accountId to localStorage
+      if (token) {
+        localStorage.setItem("authToken", token);
+        console.log("✅ Token saved to localStorage after registration");
+      }
+      if (accountId) {
+        localStorage.setItem("accountId", accountId);
+        console.log("✅ Account ID saved to localStorage:", accountId);
       }
 
       return {
         success: true,
-        message: String(result.message) || "Đăng ký thành công.",
-        data: (resultData as AuthResponse['data']) || undefined,
+        message: "Đăng ký thành công.",
+        data: token && accountId ? {
+          token,
+          accountId,
+          user: {} as UserData, // User data will be fetched on auto-login
+        } : undefined,
       };
     } catch (error) {
       console.error("Registration error:", error);
@@ -531,8 +564,56 @@ class AuthService {
     }
   }
 
-  /**
-   * Get company approval status
+  /**   * Create invite code for company
+   */
+  async createInviteCode(inviteCode: string): Promise<CreateInviteCodeResponse> {
+    try {
+      console.log("📤 Creating invite code:", inviteCode);
+      
+      const response = await fetch(`${API_BASE_URL}/Auth/create-invite-code`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ inviteCode }),
+      });
+
+      const responseText = await response.text();
+      console.log("📥 Response status:", response.status);
+      console.log("📥 Response text:", responseText);
+
+      let result: Record<string, unknown> = {};
+      try {
+        result = JSON.parse(responseText);
+      } catch (e) {
+        result = {
+          success: response.ok,
+          message: responseText,
+        };
+      }
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: String(result.message) || "Không thể tạo mã mời.",
+        };
+      }
+
+      return {
+        success: true,
+        message: String(result.message) || "Tạo mã mời thành công.",
+        data: (result.data as CreateInviteCodeResponse["data"]) || { inviteCode },
+      };
+    } catch (error) {
+      console.error("Create invite code error:", error);
+      return {
+        success: false,
+        message: "Lỗi kết nối. Vui lòng thử lại.",
+      };
+    }
+  }
+
+  /**   * Get company approval status
    */
   async getCompanyApprovalStatus(): Promise<CompanyResponse> {
     try {
