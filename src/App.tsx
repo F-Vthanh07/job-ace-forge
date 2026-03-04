@@ -28,6 +28,9 @@ import Jobs from "./pages/Jobs";
 import JobDetail from "./pages/JobDetail";
 import Premium from "./pages/Premium";
 import Payment from "./pages/Payment";
+import PaymentDetail from "./pages/PaymentDetail";
+import PaymentSuccess from "./pages/PaymentSuccess";
+import PaymentFailure from "./pages/PaymentFailure";
 import RecruiterLogin from "./pages/RecruiterLogin";
 import RecruiterSignup from "./pages/RecruiterSignup";
 import BusinessProfile from "./pages/BusinessProfile";
@@ -85,6 +88,9 @@ const App = () => (
               <Route path="/job-detail/:id" element={<JobDetail />} />
               <Route path="/premium" element={<Premium />} />
               <Route path="/payment" element={<Payment />} />
+              <Route path="/payment-detail" element={<PaymentDetail />} />
+              <Route path="/payment-success" element={<PaymentSuccess />} />
+              <Route path="/payment-failure" element={<PaymentFailure />} />
               
               {/* Recruiter Routes */}
               <Route path="/recruiter-login" element={<RecruiterLogin />} />

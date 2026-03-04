@@ -2,27 +2,88 @@ import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles, Zap } from "lucide-react";
+import { Check, Sparkles, Zap, Loader2 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { subscriptionService, SubscriptionPlan } from "@/services/subscriptionService";
+import { notifyError } from "@/utils/notification";
 
 const Premium = () => {
-  const features = {
-    free: [
-      "3 CV reviews per month",
-      "5 mock interviews per month",
-      "Basic job matching",
-      "Standard AI suggestions",
-    ],
-    premium: [
-      "Unlimited CV reviews",
-      "Unlimited mock interviews",
-      "Advanced AI analysis",
-      "Priority job matching",
-      "Personalized career coaching",
-      "Industry-specific templates",
-      "Download interview recordings",
-      "Email support",
-    ],
+  const navigate = useNavigate();
+  const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCandidatePlans();
+  }, []);
+
+  const fetchCandidatePlans = async () => {
+    try {
+      setLoading(true);
+      const response = await subscriptionService.getAllPlans();
+      
+      if (response.success && response.data) {
+        // Filter for candidate plans only
+        const candidatePlans = response.data.filter(plan => {
+          const role = (plan.targetRole || "").trim().toLowerCase();
+          return role === "candidate";
+        });
+        setPlans(candidatePlans);
+      } else {
+        notifyError({
+          title: "Error",
+          description: response.message || "Failed to fetch subscription plans"
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching plans:", error);
+      notifyError({
+        title: "Error",
+        description: "An error occurred while fetching plans"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
+
+  const formatPrice = (price: number) => {
+    if (price === 0) return "";
+    if (price >= 1000) {
+      // Giá lớn hơn 1000, hiển thị dạng K (VND)
+      return `${(price / 1000).toFixed(0)}K`;
+    }
+    // Giá nhỏ hơn 1000, có thể là đơn vị nghìn VND, hiển thị trực tiếp
+    return `${Math.round(price)}K`;
+  };
+
+  const parseFeatures = (features: string): string[] => {
+    return features.split(',').map(f => f.trim()).filter(f => f.length > 0);
+  };
+
+  const getDurationLabel = (days: number) => {
+    if (days === 30) return "/month";
+    if (days === 365) return "/year";
+    return `/${days} days`;
+  };
+
+  const getGridColumns = () => {
+    if (plans.length === 2) return 'md:grid-cols-2';
+    if (plans.length === 1) return 'md:grid-cols-1';
+    return 'md:grid-cols-3';
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar />
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -41,65 +102,80 @@ const Premium = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {/* Free Plan */}
-            <Card className="p-8">
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold mb-2">Free</h3>
-                <div className="mb-4">
-                  <span className="text-5xl font-bold">$0</span>
-                  <span className="text-muted-foreground">/month</span>
-                </div>
-                <p className="text-muted-foreground">Perfect for getting started</p>
-              </div>
+          <div className={`grid gap-8 max-w-4xl mx-auto ${getGridColumns()}`}>
+            {plans.map((plan, index) => {
+              const isFree = plan.price === 0;
+              const isPremium = plan.price > 0;
+              const isPopular = isPremium && index === 1; // Second non-free plan is popular
+              const features = parseFeatures(plan.features);
 
-              <Button variant="outline" size="lg" className="w-full mb-6">
-                Current Plan
-              </Button>
+              return (
+                <Card 
+                  key={plan.id} 
+                  className={`p-8 ${isPremium ? 'border-primary shadow-glow' : ''} relative overflow-hidden`}
+                >
+                  {isPopular && (
+                    <div className="absolute top-4 right-4">
+                      <Badge className="gradient-primary text-white">
+                        <Zap className="h-3 w-3 mr-1" />
+                        Popular
+                      </Badge>
+                    </div>
+                  )}
 
-              <div className="space-y-3">
-                {features.free.map((feature) => (
-                  <div key={feature} className="flex items-center gap-2">
-                    <Check className="h-5 w-5 text-muted-foreground" />
-                    <span className="text-sm">{feature}</span>
+                  <div className="text-center mb-6">
+                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                    <div className="mb-1">
+                      <span className="text-5xl font-bold">{formatPrice(plan.price)}</span>
+                      <span className="text-muted-foreground">
+                        {isPremium && " VND" + getDurationLabel(plan.durationInDays)}
+                      </span>
+                    </div>
+                    {isPremium && plan.durationInDays === 365 && (
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Save 33% with annual billing
+                      </p>
+                    )}
+                    {isFree && (
+                      <p className="text-muted-foreground mt-4">Perfect for getting started</p>
+                    )}
                   </div>
-                ))}
-              </div>
-            </Card>
 
-            {/* Premium Plan */}
-            <Card className="p-8 border-primary shadow-glow relative overflow-hidden">
-              <div className="absolute top-4 right-4">
-                <Badge className="gradient-primary text-white">
-                  <Zap className="h-3 w-3 mr-1" />
-                  Popular
-                </Badge>
-              </div>
+                  <Button 
+                    size="lg" 
+                    variant={isFree ? "outline" : "default"}
+                    className={`w-full mb-6 ${isPremium ? 'gradient-primary shadow-glow' : ''}`}
+                    onClick={() => {
+                      if (isPremium) {
+                        navigate("/payment-detail", {
+                          state: {
+                            plan: {
+                              id: plan.id,
+                              name: plan.name,
+                              price: plan.price,
+                              durationInDays: plan.durationInDays,
+                              features: plan.features
+                            }
+                          }
+                        });
+                      }
+                    }}
+                    disabled={isFree}
+                  >
+                    {isFree ? "Current Plan" : `Upgrade to ${plan.name}`}
+                  </Button>
 
-              <div className="text-center mb-6">
-                <h3 className="text-2xl font-bold mb-2">Premium</h3>
-                <div className="mb-1">
-                  <span className="text-5xl font-bold">699K</span>
-                  <span className="text-muted-foreground"> VND/month</span>
-                </div>
-                <p className="text-sm text-muted-foreground mb-4">
-                  ~$6 USD • Save 33% with annual billing
-                </p>
-              </div>
-
-              <Button size="lg" className="w-full gradient-primary shadow-glow mb-6">
-                Upgrade to Premium
-              </Button>
-
-              <div className="space-y-3">
-                {features.premium.map((feature) => (
-                  <div key={feature} className="flex items-center gap-2">
-                    <Check className="h-5 w-5 text-primary" />
-                    <span className="text-sm font-medium">{feature}</span>
+                  <div className="space-y-3">
+                    {features.map((feature) => (
+                      <div key={feature} className="flex items-center gap-2">
+                        <Check className={`h-5 w-5 ${isPremium ? 'text-primary' : 'text-muted-foreground'}`} />
+                        <span className={`text-sm ${isPremium ? 'font-medium' : ''}`}>{feature}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
-            </Card>
+                </Card>
+              );
+            })}
           </div>
 
           {/* FAQ */}
