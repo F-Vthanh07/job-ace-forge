@@ -137,6 +137,20 @@ const AdminPricing = () => {
     return role === "recruiter";
   });
   
+  const formatPrice = (price: number) => {
+    if (price === 0) return "Free";
+    if (price >= 1000) {
+      return `${(price / 1000).toFixed(0)}K VND`;
+    }
+    return `${Math.round(price)}K VND`;
+  };
+  
+  const getDurationLabel = (days: number) => {
+    if (days === 30) return 'month';
+    if (days === 365) return 'year';
+    return `${days} days`;
+  };
+  
   console.log("🎯 Candidate Plans Count:", candidatePlans.length);
   console.log("💼 Business Plans Count:", businessPlans.length);
   console.log("📊 Business Plans Data:", businessPlans);
@@ -207,8 +221,8 @@ const AdminPricing = () => {
                         {formData.targetRole === "Candidate" ? (
                           <>
                             <SelectItem value="Free">Free</SelectItem>
-                            <SelectItem value="Standard">Standard</SelectItem>
-                            <SelectItem value="Premium">Premium</SelectItem>
+                            <SelectItem value="Plus">Plus</SelectItem>
+                            <SelectItem value="Pro">Pro</SelectItem>
                           </>
                         ) : (
                           <>
@@ -224,17 +238,20 @@ const AdminPricing = () => {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="price">Price ($) *</Label>
+                    <Label htmlFor="price">Price (VND) *</Label>
                     <Input
                       id="price"
                       type="number"
                       min="0"
-                      step="0.01"
-                      placeholder="0"
+                      step="1000"
+                      placeholder="699000"
                       value={formData.price}
                       onChange={(e) => handleInputChange("price", Number(e.target.value))}
                       className="mt-1"
                     />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Enter price in VND (e.g., 699000 for 699K VND)
+                    </p>
                   </div>
 
                   <div>
@@ -357,8 +374,8 @@ const AdminPricing = () => {
                   <div>
                     <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                     <p className="text-3xl font-bold text-gradient">
-                      ${plan.price}
-                      <span className="text-lg text-muted-foreground">/month</span>
+                      {formatPrice(plan.price)}
+                      <span className="text-lg text-muted-foreground">/{getDurationLabel(plan.durationInDays)}</span>
                     </p>
                   </div>
                   <Button variant="outline">
@@ -370,7 +387,7 @@ const AdminPricing = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor={`price-${plan.id}`}>Monthly Price ($)</Label>
+                      <Label htmlFor={`price-${plan.id}`}>Price (VND)</Label>
                       <Input 
                         id={`price-${plan.id}`} 
                         defaultValue={plan.price}
@@ -430,8 +447,8 @@ const AdminPricing = () => {
                   <div>
                     <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
                     <p className="text-3xl font-bold text-gradient">
-                      ${plan.price}
-                      <span className="text-lg text-muted-foreground">/month</span>
+                      {formatPrice(plan.price)}
+                      <span className="text-lg text-muted-foreground">/{getDurationLabel(plan.durationInDays)}</span>
                     </p>
                   </div>
                   <Button variant="outline">
@@ -443,7 +460,7 @@ const AdminPricing = () => {
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor={`biz-price-${plan.id}`}>Monthly Price ($)</Label>
+                      <Label htmlFor={`biz-price-${plan.id}`}>Price (VND)</Label>
                       <Input 
                         id={`biz-price-${plan.id}`} 
                         defaultValue={plan.price}
