@@ -49,7 +49,7 @@ const formatDate = (dateString: string) => {
 
 export const CreativeTemplate = ({ data, skills = [], workExperiences = [], educations = [] }: CreativeTemplateProps) => {
   return (
-    <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 p-8 space-y-6" id="cv-preview">
+    <div className="bg-gradient-to-br from-primary/5 via-background to-accent/5 w-full min-h-[800px] p-8 space-y-6 border rounded-lg shadow-sm" id="cv-preview">
       <div className="relative">
         <div className="absolute top-0 right-0 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
         <div className="relative bg-background/80 backdrop-blur-sm rounded-2xl p-6 border-2 border-primary/20">
@@ -87,8 +87,8 @@ export const CreativeTemplate = ({ data, skills = [], workExperiences = [], educ
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-4">
-        <div className="col-span-2 space-y-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="md:col-span-2 space-y-4">
           <Card className="p-4 border-l-4 border-primary">
             <h2 className="text-xl font-bold text-foreground mb-2 flex items-center gap-2">
               <Briefcase className="h-5 w-5 text-primary" />

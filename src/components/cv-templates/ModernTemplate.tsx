@@ -48,8 +48,8 @@ const formatDate = (dateString: string) => {
 
 export const ModernTemplate = ({ data, skills = [], workExperiences = [], educations = [] }: ModernTemplateProps) => {
   return (
-    <div className="bg-background grid grid-cols-3 gap-0" id="cv-preview">
-      <div className="col-span-1 bg-primary/10 p-6 space-y-6">
+    <div className="bg-background w-full min-h-[800px] grid grid-cols-1 md:grid-cols-3 gap-0 border rounded-lg overflow-hidden shadow-sm" id="cv-preview">
+      <div className="md:col-span-1 bg-primary/10 p-6 space-y-6">
         <div className="w-32 h-32 rounded-full bg-muted mx-auto mb-4 overflow-hidden border-4 border-primary">
           {data.photo ? (
             <img src={data.photo} alt={data.fullName} className="w-full h-full object-cover" />
@@ -101,7 +101,7 @@ export const ModernTemplate = ({ data, skills = [], workExperiences = [], educat
         )}
       </div>
 
-      <div className="col-span-2 p-8 space-y-6">
+      <div className="md:col-span-2 p-8 space-y-6">
         <div>
           <h1 className="text-4xl font-bold text-foreground">{data.fullName}</h1>
           <p className="text-xl text-primary font-semibold">{data.title}</p>

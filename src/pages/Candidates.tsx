@@ -625,8 +625,8 @@ const Candidates = () => {
         {/* Candidate Detail Modal */}
         {selectedApplication && (
           <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
-            <DialogContent className="max-w-6xl max-h-[90vh]">
-              <DialogHeader>
+            <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+              <DialogHeader className="flex-shrink-0">
                 <DialogTitle className="text-2xl">Candidate Profile & AI Analysis</DialogTitle>
                 <DialogDescription>
                   Detailed view of candidate's CV and AI matching analysis
@@ -634,7 +634,7 @@ const Candidates = () => {
               </DialogHeader>
 
               {/* Action Buttons */}
-              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg border-2 shadow-sm">
+              <div className="flex-shrink-0 flex items-center justify-between p-4 bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg border-2 shadow-sm">
                 <div className="flex items-center gap-3">
                   <span className="text-sm font-semibold">Application Status:</span>
                   <Badge className={`${getStatusColor(selectedApplication.status)} text-sm px-3 py-1 shadow-sm`}>
@@ -678,8 +678,8 @@ const Candidates = () => {
                 </div>
               </div>
 
-              <Tabs defaultValue="cv" className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+              <Tabs defaultValue="cv" className="flex-1 flex flex-col min-h-0">
+                <TabsList className="flex-shrink-0 grid w-full grid-cols-2">
                   <TabsTrigger value="cv" className="gap-2">
                     <FileText className="h-4 w-4" />
                     CV Preview
@@ -690,7 +690,7 @@ const Candidates = () => {
                   </TabsTrigger>
                 </TabsList>
 
-                <TabsContent value="cv" className="overflow-y-auto max-h-[calc(90vh-200px)]">
+                <TabsContent value="cv" className="flex-1 overflow-y-auto mt-4">
                   {(() => {
                     const profile = parseProfile(selectedApplication.profilesSnapshot);
                     if (!profile) return <p>Error loading CV</p>;
@@ -780,7 +780,7 @@ const Candidates = () => {
                   })()}
                 </TabsContent>
 
-                <TabsContent value="analysis" className="overflow-y-auto max-h-[calc(90vh-200px)] p-4">
+                <TabsContent value="analysis" className="flex-1 overflow-y-auto mt-4 p-4">
                   {(() => {
                     const analysis = parseAIAnalysis(selectedApplication.aiAnalysis);
                     if (!analysis) return <p>No AI analysis available</p>;
