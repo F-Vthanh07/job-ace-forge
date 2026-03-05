@@ -90,9 +90,13 @@ class AICVSuggestService {
         body: JSON.stringify(cvData),
       });
 
+      console.log("📊 AI Review Response Status:", response.status);
+      console.log("📊 AI Review Response OK:", response.ok);
+
       if (response.ok) {
         const data = await response.json();
-        console.log("✅ AI CV review received:", data);
+        console.log("✅ AI CV review received successfully:", data);
+        console.log("✅ Response data keys:", Object.keys(data));
         return {
           success: true,
           data: data,
@@ -100,7 +104,11 @@ class AICVSuggestService {
         };
       } else {
         const errorData = await response.json().catch(() => null);
-        console.error("❌ Failed to get CV review:", response.status, errorData);
+        console.error("❌ Failed to get CV review:");
+        console.error("   Status Code:", response.status);
+        console.error("   Error Data:", errorData);
+        console.error("   Error Message:", errorData?.message);
+        
         return {
           success: false,
           message: errorData?.message || `Failed to get CV review: ${response.status}`,

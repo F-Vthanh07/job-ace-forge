@@ -12,10 +12,10 @@ import { CVPreview } from "@/components/CVPreview";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { SimpleTemplate, ModernTemplate, ProfessionalTemplate, CreativeTemplate } from "@/components/cv-templates";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams, useNavigate } from "react-router-dom";
 import { cvService, CVSkill, CVWorkExperience, CVEducation } from "@/services/cvService";
 import { authService } from "@/services/authService";
-import { notifySuccess, notifyError } from "@/utils/notification";
+import { notifySuccess, notifyError, notifyPremiumRequired } from "@/utils/notification";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { aiCvSuggestService, AICVReviewResponse, AICVSuggestion } from "@/services/aiCvSuggestService";
@@ -37,6 +37,7 @@ const countryCodes = [
 
 const CVBuilder = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const editingCVId = searchParams.get('id');
   const [isLoadingCV, setIsLoadingCV] = useState(false);
   
@@ -510,13 +511,23 @@ const CVBuilder = () => {
 
       const response = await aiCvSuggestService.suggestCV(requestData);
       
+      console.log("🔍 AI Review Response from service:", response);
+      console.log("🔍 Response success:", response.success);
+      console.log("🔍 Response message:", response.message);
+      console.log("🔍 Response data:", response.data);
+      
       if (response.success && response.data) {
         setAiReview(response.data);
         toast({
           title: "AI Review Completed",
           description: `Your CV score: ${response.data.score}/100`,
         });
+      } else if (response.message === "You can not use this feature") {
+        // User doesn't have subscription - show premium required notification
+        console.log("⚠️ User doesn't have subscription - showing premium notification");
+        notifyPremiumRequired(() => navigate("/premium"));
       } else {
+        console.error("❌ AI Review failed with message:", response.message);
         notifyError(response.message || "Failed to get AI review");
       }
     } catch (error) {

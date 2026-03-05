@@ -23,6 +23,7 @@ export interface SubscriptionPlan {
   price: number;
   durationInDays: number;
   features: string;
+  status?: string;
   createTime: string;
   updateTime: string;
   isDeleted: boolean;
@@ -159,6 +160,125 @@ class SubscriptionService {
       }
     } catch (error) {
       console.error("❌ Error creating subscription plan:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Network error. Please try again.",
+      };
+    }
+  }
+
+  /**
+   * Update subscription plan
+   * Requires admin authentication
+   */
+  async updatePlan(planId: string, data: CreateSubscriptionPlanRequest): Promise<SubscriptionPlanResponse> {
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      if (!token) {
+        console.error("❌ Auth token not found");
+        return {
+          success: false,
+          message: "Authentication required. Please login again.",
+        };
+      }
+
+      console.log("📤 Updating subscription plan:", planId, data);
+
+      const response = await fetch(`${API_BASE_URL}/SubscriptionPlan/Update_${planId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(data),
+      });
+
+      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ API Error:");
+        console.error("   Status:", response.status);
+        console.error("   Error Text:", errorText);
+        return {
+          success: false,
+          message: `Failed to update subscription plan: ${response.status}`,
+        };
+      }
+
+      const result = await response.json();
+      console.log("✅ Plan updated successfully:");
+      console.log("   Result:", result);
+      console.log("   Result keys:", Object.keys(result));
+
+      return {
+        success: true,
+        message: "Subscription plan updated successfully",
+        data: result,
+      };
+    } catch (error) {
+      console.error("❌ Error updating subscription plan:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Network error. Please try again.",
+      };
+    }
+  }
+
+  /**
+   * Update subscription plan status to Inactive
+   * Requires admin authentication
+   */
+  async updateStatusToInactive(planId: string): Promise<SubscriptionPlanResponse> {
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      if (!token) {
+        console.error("❌ Auth token not found");
+        return {
+          success: false,
+          message: "Authentication required. Please login again.",
+        };
+      }
+
+      console.log("📤 Updating plan status to inactive:", planId);
+
+      const response = await fetch(`${API_BASE_URL}/SubscriptionPlan/UpdateStatusToInactive_${planId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ API Error:", errorText);
+        return {
+          success: false,
+          message: `Failed to update plan status: ${response.status}`,
+        };
+      }
+
+      const result = await response.json();
+      console.log("✅ Response received:", result);
+
+      if (result.isSuccess) {
+        return {
+          success: true,
+          message: result.message || "Subscription plan status changed to Inactive successfully.",
+        };
+      } else {
+        return {
+          success: false,
+          message: result.message || "Failed to update plan status",
+        };
+      }
+    } catch (error) {
+      console.error("❌ Error updating plan status:", error);
       return {
         success: false,
         message: error instanceof Error ? error.message : "Network error. Please try again.",

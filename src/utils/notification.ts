@@ -3,8 +3,9 @@
  * Provides user-friendly notifications
  */
 
-import { notification } from "antd";
+import { notification, Button } from "antd";
 import { getFriendlyErrorMessage } from "./errorHandler";
+import React from "react";
 
 type NotificationType = "success" | "error" | "info" | "warning";
 
@@ -94,4 +95,31 @@ export function notify(type: NotificationType, options: NotifyOptions | string) 
       notifyInfo(options);
       break;
   }
+}
+
+/**
+ * Show premium required notification with navigation button
+ */
+export function notifyPremiumRequired(onNavigate: () => void) {
+  const key = `premium-required-${Date.now()}`;
+  
+  notification.warning({
+    message: "Tính năng Premium",
+    description: "Bạn cần đăng ký gói Premium để sử dụng tính năng AI Review CV. Hãy nâng cấp tài khoản để trải nghiệm đầy đủ các tính năng!",
+    duration: 8,
+    placement: "topRight",
+    key,
+    btn: React.createElement(
+      Button,
+      {
+        type: "primary",
+        size: "small",
+        onClick: () => {
+          notification.close(key);
+          onNavigate();
+        },
+      },
+      "Nâng cấp ngay"
+    ),
+  });
 }
