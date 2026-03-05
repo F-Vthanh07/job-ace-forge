@@ -5,9 +5,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, TrendingUp, FileText, Brain, User, ArrowLeft } from "lucide-react";
+import { Search, TrendingUp, FileText, Brain, User, ArrowLeft, MoreVertical, CheckCircle, Calendar, XCircle, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { applicationService, ApplicationResponse } from "@/services/applicationService";
@@ -68,6 +69,7 @@ const Candidates = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const jobId = searchParams.get("job");
+  const applicationId = searchParams.get("application");
   const { toast } = useToast();
 
   const [applications, setApplications] = useState<ApplicationResponse[]>([]);
@@ -76,12 +78,45 @@ const Candidates = () => {
   const [sortBy, setSortBy] = useState("match");
   const [selectedApplication, setSelectedApplication] = useState<ApplicationResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  
+  // Filter states
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [minMatchScore, setMinMatchScore] = useState(0);
+  const [positionFilter, setPositionFilter] = useState("all");
 
   useEffect(() => {
     if (jobId) {
       fetchApplications(jobId);
     }
   }, [jobId]);
+
+  // Auto-open modal if applicationId is provided
+  useEffect(() => {
+    if (applicationId && applications.length > 0) {
+      const targetApplication = applications.find(app => app.id === applicationId);
+      if (targetApplication) {
+        setSelectedApplication(targetApplication);
+        setIsModalOpen(true);
+        
+        // Update application status to "viewed"
+        applicationService.updateApplicationStatus(targetApplication.id, "viewed")
+          .then(response => {
+            if (response.success) {
+              console.log("✅ Application status updated to viewed");
+              setApplications(prevApps => 
+                prevApps.map(app => 
+                  app.id === targetApplication.id ? { ...app, status: "viewed" } : app
+                )
+              );
+            }
+          })
+          .catch(error => {
+            console.error("Error updating application status:", error);
+          });
+      }
+    }
+  }, [applicationId, applications]);
 
   const fetchApplications = async (jobPostingId: string) => {
     try {
@@ -131,6 +166,12 @@ const Candidates = () => {
     switch (status.toLowerCase()) {
       case "pending":
         return "bg-yellow-500/20 text-yellow-700 border-yellow-500/30";
+      case "viewed":
+        return "bg-blue-500/20 text-blue-700 border-blue-500/30";
+      case "interview":
+        return "bg-purple-500/20 text-purple-700 border-purple-500/30";
+      case "hired":
+        return "bg-green-500/20 text-green-700 border-green-500/30";
       case "approved":
         return "bg-green-500/20 text-green-700 border-green-500/30";
       case "rejected":
@@ -140,9 +181,80 @@ const Candidates = () => {
     }
   };
 
-  const handleViewDetails = (application: ApplicationResponse) => {
+  const handleViewDetails = async (application: ApplicationResponse) => {
     setSelectedApplication(application);
     setIsModalOpen(true);
+    // Update URL to include application ID
+    if (jobId) {
+      navigate(`/candidates?job=${jobId}&application=${application.id}`, { replace: true });
+    }
+
+    // Update application status to "viewed" when recruiter opens the details
+    try {
+      const response = await applicationService.updateApplicationStatus(application.id, "viewed");
+      if (response.success) {
+        console.log("✅ Application status updated to viewed");
+        // Update local state to reflect the status change
+        setApplications(prevApps => 
+          prevApps.map(app => 
+            app.id === application.id ? { ...app, status: "viewed" } : app
+          )
+        );
+      }
+    } catch (error) {
+      console.error("Error updating application status:", error);
+      // Don't show error to user as this is a background operation
+    }
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedApplication(null);
+    // Remove application ID from URL
+    if (jobId) {
+      navigate(`/candidates?job=${jobId}`, { replace: true });
+    }
+  };
+
+  const handleStatusChange = async (applicationId: string, newStatus: string) => {
+    try {
+      setUpdatingStatus(applicationId);
+      const response = await applicationService.updateApplicationStatus(applicationId, newStatus);
+      
+      if (response.success) {
+        // Update local state
+        setApplications(prevApps => 
+          prevApps.map(app => 
+            app.id === applicationId ? { ...app, status: newStatus } : app
+          )
+        );
+
+        // Update selected application if it's the one being updated
+        if (selectedApplication?.id === applicationId) {
+          setSelectedApplication(prev => prev ? { ...prev, status: newStatus } : null);
+        }
+
+        toast({
+          title: "Success",
+          description: `Application status updated to ${newStatus}`,
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: response.message || "Failed to update status",
+        });
+      }
+    } catch (error) {
+      console.error("Error updating status:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update application status",
+      });
+    } finally {
+      setUpdatingStatus(null);
+    }
   };
 
   const filteredApplications = applications.filter(app => {
@@ -153,8 +265,23 @@ const Candidates = () => {
       profile.FullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       profile.Jobtitle.toLowerCase().includes(searchTerm.toLowerCase());
     
-    return matchesSearch;
+    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+    
+    const matchesScore = app.matchScore >= minMatchScore;
+    
+    const matchesPosition = positionFilter === "all" || 
+      profile.Jobtitle.toLowerCase().includes(positionFilter.toLowerCase()) ||
+      profile.DesiredJobTitle.toLowerCase().includes(positionFilter.toLowerCase());
+    
+    return matchesSearch && matchesStatus && matchesScore && matchesPosition;
   });
+  
+  // Get unique positions for filter dropdown
+  const uniquePositions = Array.from(new Set(
+    applications
+      .map(app => parseProfile(app.profilesSnapshot)?.Jobtitle)
+      .filter(Boolean)
+  ));
 
   // Sort applications
   const sortedApps = [...filteredApplications].sort((a, b) => {
@@ -181,31 +308,153 @@ const Candidates = () => {
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2">Job Candidates</h1>
           <p className="text-muted-foreground">
-            AI-ranked candidates who applied for this position ({applications.length} total)
+            {sortedApps.length === applications.length ? (
+              <span>AI-ranked candidates who applied for this position ({applications.length} total)</span>
+            ) : (
+              <span>
+                Showing <strong className="text-foreground">{sortedApps.length}</strong> of {applications.length} candidates
+                {(statusFilter !== "all" || minMatchScore > 0 || positionFilter !== "all" || searchTerm !== "") && (
+                  <span className="ml-2 text-primary">(filtered)</span>
+                )}
+              </span>
+            )}
           </p>
         </div>
 
         {/* Filters */}
-        <Card className="p-6 mb-8">
-          <div className="grid md:grid-cols-2 gap-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-              <Input 
-                placeholder="Search candidates by name or role..." 
-                className="pl-10"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+        <Card className="p-6 mb-8 shadow-lg border-2">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold">Filter & Sort Candidates</h2>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => {
+                  setSearchTerm("");
+                  setStatusFilter("all");
+                  setMinMatchScore(0);
+                  setPositionFilter("all");
+                }}
+              >
+                Reset Filters
+              </Button>
             </div>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger>
-                <SelectValue placeholder="Sort By" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="match">Match Score (High to Low)</SelectItem>
-                <SelectItem value="recent">Most Recent</SelectItem>
-              </SelectContent>
-            </Select>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {/* Search */}
+              <div className="relative">
+                <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
+                <Input 
+                  placeholder="Search candidates..." 
+                  className="pl-10"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              {/* Status Filter */}
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="border-2">
+                  <SelectValue placeholder="Filter by Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="pending">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-yellow-500"></span>
+                      {' '}Pending
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="viewed">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-blue-500"></span>
+                      {' '}Viewed
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="interview">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-purple-500"></span>
+                      {' '}Interview
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="hired">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                      {' '}Hired
+                    </span>
+                  </SelectItem>
+                  <SelectItem value="rejected">
+                    <span className="flex items-center gap-2">
+                      <span className="h-2 w-2 rounded-full bg-red-500"></span>
+                      {' '}Rejected
+                    </span>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Match Score Filter */}
+              <Select value={minMatchScore.toString()} onValueChange={(val) => setMinMatchScore(Number(val))}>
+                <SelectTrigger className="border-2">
+                  <SelectValue placeholder="Min Match Score" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">All Scores (0%+)</SelectItem>
+                  <SelectItem value="50">Good Match (50%+)</SelectItem>
+                  <SelectItem value="70">Great Match (70%+)</SelectItem>
+                  <SelectItem value="85">Excellent Match (85%+)</SelectItem>
+                  <SelectItem value="95">Perfect Match (95%+)</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* Position Filter */}
+              <Select value={positionFilter} onValueChange={setPositionFilter}>
+                <SelectTrigger className="border-2">
+                  <SelectValue placeholder="Filter by Position" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Positions</SelectItem>
+                  {uniquePositions.map((position) => (
+                    <SelectItem key={position} value={position || ""}>
+                      {position}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Sort */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Sort by:</span>
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-auto">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="match">Match Score (High to Low)</SelectItem>
+                  <SelectItem value="recent">Most Recent</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {/* Active Filters Summary */}
+            <div className="flex flex-wrap gap-2 pt-2 border-t">
+              <span className="text-sm font-medium">Active filters:</span>
+              {searchTerm && (
+                <Badge variant="secondary">Search: {searchTerm}</Badge>
+              )}
+              {statusFilter !== "all" && (
+                <Badge variant="secondary">Status: {statusFilter}</Badge>
+              )}
+              {minMatchScore > 0 && (
+                <Badge variant="secondary">Score: {minMatchScore}%+</Badge>
+              )}
+              {positionFilter !== "all" && (
+                <Badge variant="secondary">Position: {positionFilter}</Badge>
+              )}
+              {searchTerm === "" && statusFilter === "all" && minMatchScore === 0 && positionFilter === "all" && (
+                <span className="text-sm text-muted-foreground">None</span>
+              )}
+            </div>
           </div>
         </Card>
 
@@ -305,13 +554,66 @@ const Candidates = () => {
                         <TrendingUp className="h-5 w-5 text-primary" />
                         <span className="text-3xl font-bold text-primary">{app.matchScore}%</span>
                       </div>
-                      <Button 
-                        className="gradient-primary gap-2" 
-                        onClick={() => handleViewDetails(app)}
-                      >
-                        <FileText className="h-4 w-4" />
-                        View Details
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button 
+                          className="gradient-primary gap-2" 
+                          onClick={() => handleViewDetails(app)}
+                        >
+                          <FileText className="h-4 w-4" />
+                          View Details
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button 
+                              variant="outline" 
+                              size="icon" 
+                              disabled={updatingStatus === app.id}
+                              className="border-2 hover:border-primary hover:bg-primary/10"
+                            >
+                              {updatingStatus === app.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <MoreVertical className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <div className="px-2 py-1.5 text-xs font-semibold text-muted-foreground">
+                              Change Status
+                            </div>
+                            <DropdownMenuItem 
+                              onClick={() => handleStatusChange(app.id, "Interview")}
+                              className="gap-2 cursor-pointer hover:bg-purple-50 dark:hover:bg-purple-950 py-3"
+                            >
+                              <Calendar className="h-4 w-4 text-purple-600" />
+                              <div className="flex flex-col">
+                                <span className="font-medium">Schedule Interview</span>
+                                <span className="text-xs text-muted-foreground">Move to interview stage</span>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleStatusChange(app.id, "Hired")}
+                              className="gap-2 cursor-pointer hover:bg-green-50 dark:hover:bg-green-950 py-3"
+                            >
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <div className="flex flex-col">
+                                <span className="font-medium text-green-700 dark:text-green-400">Accept (Hired)</span>
+                                <span className="text-xs text-muted-foreground">Offer the job</span>
+                              </div>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => handleStatusChange(app.id, "Rejected")}
+                              className="gap-2 cursor-pointer hover:bg-red-50 dark:hover:bg-red-950 py-3"
+                            >
+                              <XCircle className="h-4 w-4 text-red-600" />
+                              <div className="flex flex-col">
+                                <span className="font-medium text-red-700 dark:text-red-400">Reject</span>
+                                <span className="text-xs text-muted-foreground">Decline application</span>
+                              </div>
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                   </div>
                 </Card>
@@ -322,7 +624,7 @@ const Candidates = () => {
 
         {/* Candidate Detail Modal */}
         {selectedApplication && (
-          <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+          <Dialog open={isModalOpen} onOpenChange={(open) => !open && handleCloseModal()}>
             <DialogContent className="max-w-6xl max-h-[90vh]">
               <DialogHeader>
                 <DialogTitle className="text-2xl">Candidate Profile & AI Analysis</DialogTitle>
@@ -330,6 +632,51 @@ const Candidates = () => {
                   Detailed view of candidate's CV and AI matching analysis
                 </DialogDescription>
               </DialogHeader>
+
+              {/* Action Buttons */}
+              <div className="flex items-center justify-between p-4 bg-gradient-to-r from-muted/30 to-muted/50 rounded-lg border-2 shadow-sm">
+                <div className="flex items-center gap-3">
+                  <span className="text-sm font-semibold">Application Status:</span>
+                  <Badge className={`${getStatusColor(selectedApplication.status)} text-sm px-3 py-1 shadow-sm`}>
+                    {selectedApplication.status.toUpperCase()}
+                  </Badge>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStatusChange(selectedApplication.id, "Interview")}
+                    disabled={updatingStatus === selectedApplication.id}
+                    className="gap-2 border-2 border-purple-300 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-400 dark:border-purple-700 dark:hover:bg-purple-950 shadow-sm"
+                  >
+                    <Calendar className="h-4 w-4" />
+                    Schedule Interview
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => handleStatusChange(selectedApplication.id, "Hired")}
+                    disabled={updatingStatus === selectedApplication.id}
+                    className="gap-2 bg-green-600 hover:bg-green-700 shadow-md hover:shadow-lg transition-all"
+                  >
+                    <CheckCircle className="h-4 w-4" />
+                    Accept (Hired)
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleStatusChange(selectedApplication.id, "Rejected")}
+                    disabled={updatingStatus === selectedApplication.id}
+                    className="gap-2 shadow-md hover:shadow-lg transition-all"
+                  >
+                    <XCircle className="h-4 w-4" />
+                    Reject
+                  </Button>
+                  {updatingStatus === selectedApplication.id && (
+                    <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                  )}
+                </div>
+              </div>
 
               <Tabs defaultValue="cv" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">

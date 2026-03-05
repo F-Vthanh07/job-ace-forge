@@ -3,14 +3,30 @@ import { StatCard } from "@/components/StatCard";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Briefcase, Users, TrendingUp, Clock, Plus, Loader2, XCircle, AlertCircle } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { companyService, CompanyData } from "@/services/companyService";
 import { notifyError, notifySuccess } from "@/utils/notification";
+import { jobService } from "@/services/jobService";
+import { applicationService, ApplicationResponse } from "@/services/applicationService";
+
+interface RecentApplication {
+  applicationId: string;
+  candidateName: string;
+  candidateId: string;
+  jobTitle: string;
+  jobPostingId: string;
+  matchScore: number;
+  appliedTime: string;
+  status: string;
+}
 
 const RecruiterDashboard = () => {
+  const navigate = useNavigate();
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [recentApplications, setRecentApplications] = useState<RecentApplication[]>([]);
+  const [loadingApplications, setLoadingApplications] = useState(false);
 
   useEffect(() => {
     // Delay fetching company data by 2 seconds to ensure user data is properly stored after login
@@ -21,6 +37,12 @@ const RecruiterDashboard = () => {
     // Cleanup timeout on component unmount
     return () => clearTimeout(timeoutId);
   }, []);
+
+  useEffect(() => {
+    if (companyData?.id) {
+      fetchRecentApplications(companyData.id);
+    }
+  }, [companyData]);
 
   const fetchRecruiterCompany = async () => {
     try {
@@ -94,11 +116,87 @@ const RecruiterDashboard = () => {
     }
   };
 
-  const recentApplications = [
-    { name: "John Doe", role: "Senior Frontend Developer", score: 92, time: "2 hours ago" },
-    { name: "Jane Smith", role: "Full Stack Engineer", score: 88, time: "5 hours ago" },
-    { name: "Mike Johnson", role: "React Developer", score: 85, time: "1 day ago" },
-  ];
+  const fetchRecentApplications = async (companyId: string) => {
+    try {
+      setLoadingApplications(true);
+      console.log("📤 Fetching recent applications for company:", companyId);
+
+      // First, get all jobs for this company
+      const jobsResponse = await jobService.getJobsByCompanyId(companyId);
+      
+      if (!jobsResponse.success || !jobsResponse.data) {
+        console.log("⚠️ No jobs found for company");
+        setRecentApplications([]);
+        return;
+      }
+
+      const jobs = jobsResponse.data;
+      console.log(`✅ Found ${jobs.length} jobs`);
+
+      // Fetch applications for all jobs
+      const allApplicationsPromises = jobs.map(job => 
+        applicationService.getApplicationsByJobPostingId(job.id)
+      );
+
+      const allApplicationsResponses = await Promise.all(allApplicationsPromises);
+      
+      // Combine all applications
+      const allApplications: RecentApplication[] = [];
+      
+      allApplicationsResponses.forEach((response, index) => {
+        if (response.success && response.data) {
+          const job = jobs[index];
+          response.data.forEach((app: ApplicationResponse) => {
+            try {
+              const profile = JSON.parse(app.profilesSnapshot);
+              allApplications.push({
+                applicationId: app.id,
+                candidateName: profile.FullName || "Unknown",
+                candidateId: app.candidateId,
+                jobTitle: job.title,
+                jobPostingId: app.jobPostingId,
+                matchScore: app.matchScore,
+                appliedTime: new Date().toISOString(), // API doesn't return application time, using current
+                status: app.status,
+              });
+            } catch (error) {
+              console.error("Error parsing profile snapshot:", error);
+            }
+          });
+        }
+      });
+
+      // Sort by most recent (in real scenario, should use actual application timestamp)
+      // For now, just take first 5
+      const recent = allApplications.slice(0, 5);
+      
+      console.log(`✅ Loaded ${allApplications.length} total applications, showing ${recent.length} recent`);
+      setRecentApplications(recent);
+
+    } catch (error) {
+      console.error("❌ Error fetching recent applications:", error);
+    } finally {
+      setLoadingApplications(false);
+    }
+  };
+
+  const handleReviewCandidate = (jobPostingId: string, applicationId: string) => {
+    // Navigate to candidates page with job and application ID
+    navigate(`/candidates?job=${jobPostingId}&application=${applicationId}`);
+  };
+
+  const getTimeAgo = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMs = now.getTime() - date.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMs / 3600000);
+    const diffDays = Math.floor(diffMs / 86400000);
+
+    if (diffMins < 60) return `${diffMins} minutes ago`;
+    if (diffHours < 24) return `${diffHours} hours ago`;
+    return `${diffDays} days ago`;
+  };
 
   if (loading) {
     return (
@@ -238,39 +336,52 @@ const RecruiterDashboard = () => {
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-2xl font-bold">Recent Applications</h2>
             <Button variant="outline" asChild>
-              <Link to="/candidates">View All</Link>
+              <Link to="/manage-jobs">View All Jobs</Link>
             </Button>
           </div>
 
-          <div className="space-y-4">
-            {recentApplications.map((app) => (
-              <div
-                key={app.name}
-                className="flex items-center justify-between p-4 rounded-lg border hover:border-primary transition-all"
-              >
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center text-white font-bold">
-                    {app.name.split(' ').map(n => n[0]).join('')}
+          {loadingApplications ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : recentApplications.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Users className="h-12 w-12 mx-auto mb-3 opacity-50" />
+              <p>No applications yet</p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {recentApplications.map((app) => (
+                <div
+                  key={app.applicationId}
+                  className="flex items-center justify-between p-4 rounded-lg border hover:border-primary transition-all"
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="h-12 w-12 rounded-full gradient-primary flex items-center justify-center text-white font-bold">
+                      {app.candidateName.split(' ').map(n => n[0]).join('')}
+                    </div>
+                    <div>
+                      <h3 className="font-semibold">{app.candidateName}</h3>
+                      <p className="text-sm text-muted-foreground">{app.jobTitle}</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold">{app.name}</h3>
-                    <p className="text-sm text-muted-foreground">{app.role}</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
-                    <p className="font-bold text-success">{app.score}% Match</p>
-                    <p className="text-xs text-muted-foreground">{app.time}</p>
-                  </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <Link to={`/candidate-report/${app.name.replace(' ', '-').toLowerCase()}`}>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="font-bold text-primary">{app.matchScore}% Match</p>
+                      <p className="text-xs text-muted-foreground">{getTimeAgo(app.appliedTime)}</p>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => handleReviewCandidate(app.jobPostingId, app.applicationId)}
+                    >
                       Review
-                    </Link>
-                  </Button>
+                    </Button>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </Card>
 
         {/* Active Job Listings */}
