@@ -76,7 +76,6 @@ export const Navbar = () => {
     { name: "Dashboard", path: "/recruiter-dashboard" },
     { name: "Post Job", path: "/post-job" },
     { name: "Manage Jobs", path: "/manage-jobs" },
-    { name: "Candidates", path: "/candidates" },
     { name: "Profile", path: "/business-profile" },
   ];
 

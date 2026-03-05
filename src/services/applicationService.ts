@@ -278,6 +278,55 @@ class ApplicationService {
       };
     }
   }
+
+  /**
+   * Update application status (e.g., when recruiter views the application)
+   */
+  async updateApplicationStatus(applicationId: string, status: string): Promise<ApiResponse<ApplicationResponse>> {
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        console.error("❌ No authentication token found");
+        return {
+          success: false,
+          message: "Authentication required. Please login again.",
+        };
+      }
+
+      console.log(`📤 Updating application ${applicationId} status to:`, status);
+
+      const response = await fetch(`${API_BASE_URL}/update-status/${applicationId}?status=${status}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ Application status updated successfully:", data);
+        return {
+          success: true,
+          data: data,
+          message: "Application status updated successfully",
+        };
+      } else {
+        const errorData = await response.json().catch(() => null);
+        console.error("❌ Failed to update application status:", response.status, errorData);
+        return {
+          success: false,
+          message: errorData?.message || `Failed to update status: ${response.status}`,
+        };
+      }
+    } catch (error) {
+      console.error("❌ Error updating application status:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Failed to update application status",
+      };
+    }
+  }
 }
 
 export const applicationService = new ApplicationService();
