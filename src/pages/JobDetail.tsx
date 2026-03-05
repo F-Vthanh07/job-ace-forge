@@ -2,12 +2,14 @@ import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Briefcase, MapPin, DollarSign, Clock, Building2, Share2, Heart, Users, Calendar } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Briefcase, MapPin, DollarSign, Clock, Building2, Share2, Heart, Users, Calendar, CheckCircle2, TrendingUp, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { jobService, JobData } from "@/services/jobService";
 import { useToast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
+import { ApplyJobDialog } from "@/components/ApplyJobDialog";
 
 const JobDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +17,11 @@ const JobDetail = () => {
   const { toast } = useToast();
   const [job, setJob] = useState<JobData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showApplyDialog, setShowApplyDialog] = useState(false);
+  const [applicationResult, setApplicationResult] = useState<{
+    matchScore: number;
+    status: string;
+  } | null>(null);
 
   useEffect(() => {
     if (id) {
@@ -77,12 +84,41 @@ const JobDetail = () => {
     return `${wardName}, ${districtName}, ${cityName}`;
   };
 
+  const handleApplicationSuccess = (matchScore: number, status: string) => {
+    setApplicationResult({ matchScore, status });
+    toast({
+      title: "Application Submitted Successfully!",
+      description: `Match Score: ${matchScore}% - Status: ${status}`,
+    });
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case "pending":
+        return "bg-yellow-500/20 text-yellow-700 border-yellow-500/30";
+      case "approved":
+        return "bg-green-500/20 text-green-700 border-green-500/30";
+      case "rejected":
+        return "bg-red-500/20 text-red-700 border-red-500/30";
+      default:
+        return "bg-blue-500/20 text-blue-700 border-blue-500/30";
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background">
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-5xl mx-auto space-y-6">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/jobs")}
+              className="mb-6 gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Jobs
+            </Button>
             <Card className="p-8">
               <Skeleton className="h-12 w-3/4 mb-4" />
               <Skeleton className="h-6 w-1/2 mb-4" />
@@ -107,6 +143,14 @@ const JobDetail = () => {
         <Navbar />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-5xl mx-auto">
+            <Button
+              variant="outline"
+              onClick={() => navigate("/jobs")}
+              className="mb-6 gap-2"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to Jobs
+            </Button>
             <Card className="p-12 text-center">
               <Briefcase className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
               <h3 className="text-xl font-semibold mb-2">Job not found</h3>
@@ -125,6 +169,46 @@ const JobDetail = () => {
       
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-5xl mx-auto">
+          {/* Back Button */}
+          <Button
+            variant="outline"
+            onClick={() => navigate("/jobs")}
+            className="mb-6 gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to Jobs
+          </Button>
+
+          {/* Application Result Alert */}
+          {applicationResult && (
+            <Alert className="mb-6 border-2 bg-green-50 dark:bg-green-950/20 border-green-500/30">
+              <CheckCircle2 className="h-5 w-5 text-green-600" />
+              <AlertTitle className="text-green-800 dark:text-green-200 font-semibold">
+                Application Submitted Successfully!
+              </AlertTitle>
+              <AlertDescription className="mt-2 space-y-2">
+                <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-green-600" />
+                    <span className="font-semibold">Match Score:</span>
+                    <Badge variant="secondary" className="text-lg font-bold">
+                      {applicationResult.matchScore}%
+                    </Badge>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">Status:</span>
+                    <Badge className={getStatusColor(applicationResult.status)}>
+                      {applicationResult.status}
+                    </Badge>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Your application has been submitted and is being reviewed by the employer.
+                </p>
+              </AlertDescription>
+            </Alert>
+          )}
+
           {/* Header */}
           <Card className="p-8 mb-6">
             <div className="flex items-start justify-between mb-6">
@@ -178,8 +262,13 @@ const JobDetail = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button size="lg" className="gradient-primary shadow-glow">
-                Apply Now
+              <Button 
+                size="lg" 
+                className="gradient-primary shadow-glow"
+                onClick={() => setShowApplyDialog(true)}
+                disabled={!job.isActive || !!applicationResult}
+              >
+                {applicationResult ? "Already Applied" : "Apply Now"}
               </Button>
               <Button size="lg" variant="outline">
                 Save for Later
@@ -255,6 +344,16 @@ const JobDetail = () => {
           </Card>
         </div>
       </div>
+
+      {/* Apply Job Dialog */}
+      {job && (
+        <ApplyJobDialog
+          open={showApplyDialog}
+          onOpenChange={setShowApplyDialog}
+          job={job}
+          onApplicationSuccess={handleApplicationSuccess}
+        />
+      )}
     </div>
   );
 };

@@ -3,21 +3,35 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { DollarSign, Edit, Plus, Loader2 } from "lucide-react";
+import { DollarSign, Edit, Plus, Loader2, Ban, CheckCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { subscriptionService, CreateSubscriptionPlanRequest, SubscriptionPlan } from "@/services/subscriptionService";
 import { notifyError, notifySuccess } from "@/utils/notification";
 
 const AdminPricing = () => {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [inactivatingPlanId, setInactivatingPlanId] = useState<string | null>(null);
+  const [activatingPlanId, setActivatingPlanId] = useState<string | null>(null);
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [editingPlan, setEditingPlan] = useState<SubscriptionPlan | null>(null);
   const [formData, setFormData] = useState<CreateSubscriptionPlanRequest>({
+    name: "",
+    targetRole: "Candidate",
+    price: 0,
+    durationInDays: 30,
+    status: "Active",
+    features: "",
+  });
+  const [editFormData, setEditFormData] = useState<CreateSubscriptionPlanRequest>({
     name: "",
     targetRole: "Candidate",
     price: 0,
@@ -62,6 +76,158 @@ const AdminPricing = () => {
 
   const handleInputChange = (field: keyof CreateSubscriptionPlanRequest, value: string | number) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleEditPlan = (plan: SubscriptionPlan) => {
+    setEditingPlan(plan);
+    setEditFormData({
+      name: plan.name,
+      targetRole: plan.targetRole,
+      price: plan.price,
+      durationInDays: plan.durationInDays,
+      status: plan.status || "Active",
+      features: plan.features,
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleEditInputChange = (field: keyof CreateSubscriptionPlanRequest, value: string | number) => {
+    setEditFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleUpdatePlan = async () => {
+    if (!editingPlan) return;
+
+    try {
+      // Validation
+      if (!editFormData.features.trim()) {
+        notifyError({
+          title: "Validation Error",
+          description: "Features are required"
+        });
+        return;
+      }
+
+      setIsUpdating(true);
+      
+      // Convert "Business" to "Recruiter" for API
+      const apiData = {
+        ...editFormData,
+        targetRole: editFormData.targetRole === "Business" ? "Recruiter" : editFormData.targetRole
+      };
+      
+      console.log("📤 Updating plan:", editingPlan.id);
+      console.log("📝 Update data:", apiData);
+      
+      const response = await subscriptionService.updatePlan(editingPlan.id, apiData);
+      
+      console.log("📊 Update Plan Response:", response);
+      console.log("✅ Response success:", response.success);
+      console.log("💬 Response message:", response.message);
+      console.log("📦 Response data:", response.data);
+
+      if (response.success) {
+        notifySuccess({
+          title: "Success",
+          description: "Subscription plan updated successfully"
+        });
+        setIsEditDialogOpen(false);
+        setEditingPlan(null);
+        // Refresh the plans list
+        fetchPlans();
+      } else {
+        notifyError({
+          title: "Error",
+          description: response.message || "Failed to update subscription plan"
+        });
+      }
+    } catch (error) {
+      console.error("Error updating plan:", error);
+      notifyError({
+        title: "Error",
+        description: "An error occurred while updating the plan"
+      });
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
+  const handleInactivatePlan = async (planId: string, planName: string) => {
+    try {
+      setInactivatingPlanId(planId);
+      
+      const response = await subscriptionService.updateStatusToInactive(planId);
+
+      if (response.success) {
+        notifySuccess({
+          title: "Success",
+          description: `${planName} has been set to Inactive successfully`
+        });
+        // Refresh the plans list
+        fetchPlans();
+      } else {
+        notifyError({
+          title: "Error",
+          description: response.message || "Failed to update plan status"
+        });
+      }
+    } catch (error) {
+      console.error("Error inactivating plan:", error);
+      notifyError({
+        title: "Error",
+        description: "An error occurred while updating the plan status"
+      });
+    } finally {
+      setInactivatingPlanId(null);
+    }
+  };
+
+  const handleActivatePlan = async (plan: SubscriptionPlan) => {
+    try {
+      setActivatingPlanId(plan.id);
+      
+      // Use update API with status changed to Active
+      const updateData = {
+        name: plan.name,
+        targetRole: plan.targetRole,
+        price: plan.price,
+        durationInDays: plan.durationInDays,
+        status: "Active",
+        features: plan.features,
+      };
+      
+      console.log("🔄 Activating plan:", plan.id, plan.name);
+      console.log("📝 Activate data:", updateData);
+      
+      const response = await subscriptionService.updatePlan(plan.id, updateData);
+      
+      console.log("📊 Activate Plan Response:", response);
+      console.log("✅ Response success:", response.success);
+      console.log("💬 Response message:", response.message);
+      console.log("📦 Response data:", response.data);
+
+      if (response.success) {
+        notifySuccess({
+          title: "Success",
+          description: `${plan.name} has been activated successfully`
+        });
+        // Refresh the plans list
+        fetchPlans();
+      } else {
+        notifyError({
+          title: "Error",
+          description: response.message || "Failed to activate plan"
+        });
+      }
+    } catch (error) {
+      console.error("Error activating plan:", error);
+      notifyError({
+        title: "Error",
+        description: "An error occurred while activating the plan"
+      });
+    } finally {
+      setActivatingPlanId(null);
+    }
   };
 
   const handleCreatePlan = async () => {
@@ -347,7 +513,175 @@ const AdminPricing = () => {
             </DialogContent>
           </Dialog>
         </div>
+        {/* Edit Plan Dialog */}
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Edit Subscription Plan</DialogTitle>
+              <DialogDescription>
+                Update the subscription plan details
+              </DialogDescription>
+            </DialogHeader>
 
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-target-role">Target Role *</Label>
+                  <Select
+                    value={editFormData.targetRole}
+                    onValueChange={(value) => handleEditInputChange("targetRole", value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Candidate">Candidate</SelectItem>
+                      <SelectItem value="Business">Business</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-plan-name">Plan Name *</Label>
+                  <Select
+                    value={editFormData.name}
+                    onValueChange={(value) => handleEditInputChange("name", value)}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Select a plan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {editFormData.targetRole === "Candidate" ? (
+                        <>
+                          <SelectItem value="Free">Free</SelectItem>
+                          <SelectItem value="Plus">Plus</SelectItem>
+                          <SelectItem value="Pro">Pro</SelectItem>
+                        </>
+                      ) : (
+                        <>
+                          <SelectItem value="Starter">Starter</SelectItem>
+                          <SelectItem value="Professional">Professional</SelectItem>
+                          <SelectItem value="Enterprise">Enterprise</SelectItem>
+                        </>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-price">Price (VND) *</Label>
+                  <Input
+                    id="edit-price"
+                    type="number"
+                    min="0"
+                    step="1000"
+                    placeholder="699000"
+                    value={editFormData.price}
+                    onChange={(e) => handleEditInputChange("price", Number(e.target.value))}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Enter price in VND (e.g., 699000 for 699K VND)
+                  </p>
+                </div>
+
+                <div>
+                  <Label htmlFor="edit-duration">Duration (days) *</Label>
+                  <Input
+                    id="edit-duration"
+                    type="number"
+                    min="1"
+                    placeholder="30"
+                    value={editFormData.durationInDays}
+                    onChange={(e) => handleEditInputChange("durationInDays", Number(e.target.value))}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Use 2147483647 for unlimited duration
+                  </p>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-status">Status *</Label>
+                <Select
+                  value={editFormData.status}
+                  onValueChange={(value) => handleEditInputChange("status", value)}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-features">Features *</Label>
+                <Textarea
+                  id="edit-features"
+                  placeholder="Enter features separated by commas&#10;e.g., 5 job applications/month, Basic CV builder, Standard support"
+                  value={editFormData.features}
+                  onChange={(e) => handleEditInputChange("features", e.target.value)}
+                  rows={6}
+                  className="mt-1"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Separate each feature with a comma. Each feature will be displayed as a bullet point.
+                </p>
+                {editFormData.features && (
+                  <div className="mt-3 p-3 bg-secondary/50 rounded-lg">
+                    <p className="text-xs font-medium mb-2">Preview:</p>
+                    <ul className="space-y-1">
+                      {editFormData.features.split(',').map((feature) => (
+                        feature.trim() && (
+                          <li key={feature.trim()} className="flex items-center gap-2 text-sm">
+                            <div className="w-2 h-2 rounded-full bg-primary" />
+                            {feature.trim()}
+                          </li>
+                        )
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setEditingPlan(null);
+                }}
+                disabled={isUpdating}
+              >
+                Cancel
+              </Button>
+              <Button
+                className="gradient-primary shadow-glow"
+                onClick={handleUpdatePlan}
+                disabled={isUpdating}
+              >
+                {isUpdating ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  <>
+                    <Edit className="h-4 w-4 mr-2" />
+                    Update Plan
+                  </>
+                )}
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
         <Tabs defaultValue="candidate" className="space-y-6">
           <TabsList className="grid w-full max-w-md grid-cols-2">
             <TabsTrigger value="candidate">Candidate Plans</TabsTrigger>
@@ -372,40 +706,84 @@ const AdminPricing = () => {
               <Card key={plan.id} className="p-6">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-2xl font-bold">{plan.name}</h3>
+                      <Badge variant={plan.status === "Active" ? "default" : "destructive"}>
+                        {plan.status || "Active"}
+                      </Badge>
+                    </div>
                     <p className="text-3xl font-bold text-gradient">
                       {formatPrice(plan.price)}
                       <span className="text-lg text-muted-foreground">/{getDurationLabel(plan.durationInDays)}</span>
                     </p>
                   </div>
-                  <Button variant="outline">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleEditPlan(plan)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    {plan.status === "Active" ? (
+                      <Button 
+                        variant="destructive"
+                        onClick={() => handleInactivatePlan(plan.id, plan.name)}
+                        disabled={inactivatingPlanId === plan.id}
+                      >
+                        {inactivatingPlanId === plan.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="h-4 w-4 mr-2" />
+                            Inactive
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => handleActivatePlan(plan)}
+                        disabled={activatingPlanId === plan.id}
+                      >
+                        {activatingPlanId === plan.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Active
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor={`price-${plan.id}`}>Price (VND)</Label>
-                      <Input 
-                        id={`price-${plan.id}`} 
-                        defaultValue={plan.price}
-                        className="mt-1"
-                      />
+                      <Label className="text-muted-foreground">Price</Label>
+                      <p className="text-lg font-semibold">{plan.price.toLocaleString()} VND</p>
                     </div>
                     <div>
-                      <Label htmlFor={`duration-${plan.id}`}>Duration (days)</Label>
-                      <Input 
-                        id={`duration-${plan.id}`} 
-                        defaultValue={plan.durationInDays}
-                        className="mt-1"
-                      />
+                      <Label className="text-muted-foreground">Duration</Label>
+                      <p className="text-lg font-semibold">{plan.durationInDays === 2147483647 ? 'Unlimited' : `${plan.durationInDays} days`}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Target Role</Label>
+                      <p className="text-lg font-semibold">{plan.targetRole}</p>
                     </div>
                   </div>
 
                   <div>
-                    <Label>Features</Label>
+                    <Label className="text-muted-foreground">Features</Label>
                     <ul className="mt-2 space-y-2">
                       {plan.features.split(',').map((feature, i) => (
                         feature.trim() && (
@@ -417,11 +795,6 @@ const AdminPricing = () => {
                       ))}
                     </ul>
                   </div>
-                </div>
-
-                <div className="flex justify-end gap-2 mt-6 pt-6 border-t border-border">
-                  <Button variant="outline">Cancel</Button>
-                  <Button className="gradient-primary">Save Changes</Button>
                 </div>
               </Card>
             ))}
@@ -445,40 +818,84 @@ const AdminPricing = () => {
               <Card key={plan.id} className="p-6">
                 <div className="flex justify-between items-start mb-6">
                   <div>
-                    <h3 className="text-2xl font-bold mb-2">{plan.name}</h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-2xl font-bold">{plan.name}</h3>
+                      <Badge variant={plan.status === "Active" ? "default" : "destructive"}>
+                        {plan.status || "Active"}
+                      </Badge>
+                    </div>
                     <p className="text-3xl font-bold text-gradient">
                       {formatPrice(plan.price)}
                       <span className="text-lg text-muted-foreground">/{getDurationLabel(plan.durationInDays)}</span>
                     </p>
                   </div>
-                  <Button variant="outline">
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      variant="outline"
+                      onClick={() => handleEditPlan(plan)}
+                    >
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit
+                    </Button>
+                    {plan.status === "Active" ? (
+                      <Button 
+                        variant="destructive"
+                        onClick={() => handleInactivatePlan(plan.id, plan.name)}
+                        disabled={inactivatingPlanId === plan.id}
+                      >
+                        {inactivatingPlanId === plan.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <Ban className="h-4 w-4 mr-2" />
+                            Inactive
+                          </>
+                        )}
+                      </Button>
+                    ) : (
+                      <Button 
+                        variant="default"
+                        className="bg-green-600 hover:bg-green-700"
+                        onClick={() => handleActivatePlan(plan)}
+                        disabled={activatingPlanId === plan.id}
+                      >
+                        {activatingPlanId === plan.id ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Processing...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Active
+                          </>
+                        )}
+                      </Button>
+                    )}
+                  </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <div>
-                      <Label htmlFor={`biz-price-${plan.id}`}>Price (VND)</Label>
-                      <Input 
-                        id={`biz-price-${plan.id}`} 
-                        defaultValue={plan.price}
-                        className="mt-1"
-                      />
+                      <Label className="text-muted-foreground">Price</Label>
+                      <p className="text-lg font-semibold">{plan.price.toLocaleString()} VND</p>
                     </div>
                     <div>
-                      <Label htmlFor={`biz-duration-${plan.id}`}>Duration (days)</Label>
-                      <Input 
-                        id={`biz-duration-${plan.id}`} 
-                        defaultValue={plan.durationInDays}
-                        className="mt-1"
-                      />
+                      <Label className="text-muted-foreground">Duration</Label>
+                      <p className="text-lg font-semibold">{plan.durationInDays === 2147483647 ? 'Unlimited' : `${plan.durationInDays} days`}</p>
+                    </div>
+                    <div>
+                      <Label className="text-muted-foreground">Target Role</Label>
+                      <p className="text-lg font-semibold">{plan.targetRole}</p>
                     </div>
                   </div>
 
                   <div>
-                    <Label>Features</Label>
+                    <Label className="text-muted-foreground">Features</Label>
                     <ul className="mt-2 space-y-2">
                       {plan.features.split(',').map((feature, i) => (
                         feature.trim() && (
@@ -490,11 +907,6 @@ const AdminPricing = () => {
                       ))}
                     </ul>
                   </div>
-                </div>
-
-                <div className="flex justify-end gap-2 mt-6 pt-6 border-t border-border">
-                  <Button variant="outline">Cancel</Button>
-                  <Button className="gradient-primary">Save Changes</Button>
                 </div>
               </Card>
             ))}
