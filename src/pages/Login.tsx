@@ -85,8 +85,8 @@ const Login = () => {
         } else if (userRole === "recruiter") {
           navigate("/recruiter-dashboard");
         } else {
-          // Default to candidate dashboard
-          navigate("/dashboard");
+          // Default to homepage for candidates
+          navigate("/home");
         }
       } else {
         console.error("❌ Login failed:", result.message);

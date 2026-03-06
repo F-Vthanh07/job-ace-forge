@@ -14,7 +14,7 @@ const Onboarding = () => {
   const totalSteps = 3;
 
   const handleComplete = () => {
-    navigate("/dashboard");
+    navigate("/home");
   };
 
   return (

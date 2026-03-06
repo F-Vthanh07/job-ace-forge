@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { translations } from "@/locales/translations";
 import { Navbar } from "@/components/Navbar";
 import { companyService, CompanyData } from "@/services/companyService";
+import { subscriptionService, SubscriptionPlan } from "@/services/subscriptionService";
 
 const Home = () => {
   const { t: tr, language } = useLanguage();
@@ -79,6 +80,8 @@ const Home = () => {
 
   const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
 
   // Fetch verified companies from API
   useEffect(() => {
@@ -101,6 +104,29 @@ const Home = () => {
     };
 
     fetchVerifiedCompanies();
+  }, []);
+
+  // Fetch subscription plans from API
+  useEffect(() => {
+    const fetchSubscriptionPlans = async () => {
+      try {
+        setLoadingPlans(true);
+        const response = await subscriptionService.getAllPlans();
+        if (response.success && response.data) {
+          // Filter for active plans only and limit to 3 plans for home page
+          const activePlans = response.data
+            .filter(plan => plan.status === "Active")
+            .slice(0, 3);
+          setSubscriptionPlans(activePlans);
+        }
+      } catch (error) {
+        console.error("Error fetching subscription plans:", error);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    fetchSubscriptionPlans();
   }, []);
 
   const features = [
@@ -169,6 +195,37 @@ const Home = () => {
     "from-success/20 to-success/5",
     "from-warning/20 to-warning/5",
   ];
+
+  // Helper functions for pricing
+  const formatPrice = (price: number, durationInDays: number) => {
+    if (price === 0) return "Free";
+    
+    const formattedPrice = price >= 1000 
+      ? `${(price / 1000).toFixed(0)}K` 
+      : `${Math.round(price)}K`;
+    
+    if (durationInDays === 30) return `${formattedPrice}/month`;
+    if (durationInDays === 365) return `${formattedPrice}/year`;
+    return formattedPrice;
+  };
+
+  const parseFeatures = (features: string): string[] => {
+    if (!features) return [];
+    return features.split(',').map(f => f.trim()).filter(f => f.length > 0);
+  };
+
+  const getPlanLink = (plan: SubscriptionPlan) => {
+    if (plan.price === 0) return "/signup";
+    const role = (plan.targetRole || "").trim().toLowerCase();
+    if (role === "candidate") return "/premium";
+    if (role === "business") return "/recruiter-premium";
+    return "/premium";
+  };
+
+  const getPlanCta = (plan: SubscriptionPlan) => {
+    if (plan.price === 0) return tr("pricing.cta.free");
+    return tr("pricing.cta.premium");
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -425,32 +482,69 @@ const Home = () => {
           <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("pricing.sectionTitle")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">{tr("pricing.sectionSubtitle")}</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {[
-            { id: "free", name: "Free", price: "0đ", benefits: dict.pricing.benefits.free, cta: tr("pricing.cta.free"), link: "/signup", highlight: false },
-            { id: "premium", name: "Premium", price: "149k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/premium" },
-            { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/enterprise-signup", highlight: false },
-          ].map((p) => (
-            <Card key={p.id} className={`p-6 ${p.highlight ? "border-primary shadow-glow" : ""}`}>
-              <div className="flex items-baseline justify-between mb-4">
-                <h3 className="text-xl font-bold">{p.name}</h3>
-                {p.highlight && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
-              </div>
-              <div className="text-3xl font-bold mb-4">{p.price}</div>
-              <ul className="space-y-2 mb-6">
-                {p.benefits.map((b) => (
-                  <li key={`${p.id}-${b}`} className="flex items-center gap-2 text-muted-foreground">
-                    {/* Reusing an icon from Welcome would require import; keep simple: */}
-                    • {b}
-                  </li>
-                ))}
-              </ul>
-              <Button asChild className={p.highlight ? "gradient-primary" : ""} variant={p.highlight ? "default" : "outline"}>
-                <Link to={p.link}>{p.cta}</Link>
-              </Button>
-            </Card>
-          ))}
-        </div>
+        {loadingPlans ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : subscriptionPlans.length > 0 ? (
+          <div className={`grid gap-6 max-w-5xl mx-auto ${subscriptionPlans.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+            {subscriptionPlans.map((plan, index) => {
+              const features = parseFeatures(plan.features);
+              const isPremium = plan.price > 0;
+              const isHighlighted = isPremium && index === 1; // Highlight middle plan if it's premium
+              
+              return (
+                <Card key={plan.id} className={`p-6 ${isHighlighted ? "border-primary shadow-glow" : ""}`}>
+                  <div className="flex items-baseline justify-between mb-4">
+                    <h3 className="text-xl font-bold">{plan.name}</h3>
+                    {isHighlighted && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
+                  </div>
+                  <div className="text-3xl font-bold mb-4">{formatPrice(plan.price, plan.durationInDays)}</div>
+                  <ul className="space-y-2 mb-6">
+                    {features.map((feature, idx) => (
+                      <li key={`${plan.id}-${idx}`} className="flex items-center gap-2 text-muted-foreground">
+                        • {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button 
+                    asChild 
+                    className={isHighlighted ? "gradient-primary" : ""} 
+                    variant={isHighlighted ? "default" : "outline"}
+                  >
+                    <Link to={getPlanLink(plan)}>{getPlanCta(plan)}</Link>
+                  </Button>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {[
+              { id: "free", name: "Free", price: "0đ", benefits: dict.pricing.benefits.free, cta: tr("pricing.cta.free"), link: "/signup", highlight: false },
+              { id: "premium", name: "Premium", price: "149k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/premium" },
+              { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/enterprise-signup", highlight: false },
+            ].map((p) => (
+              <Card key={p.id} className={`p-6 ${p.highlight ? "border-primary shadow-glow" : ""}`}>
+                <div className="flex items-baseline justify-between mb-4">
+                  <h3 className="text-xl font-bold">{p.name}</h3>
+                  {p.highlight && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
+                </div>
+                <div className="text-3xl font-bold mb-4">{p.price}</div>
+                <ul className="space-y-2 mb-6">
+                  {p.benefits.map((b) => (
+                    <li key={`${p.id}-${b}`} className="flex items-center gap-2 text-muted-foreground">
+                      • {b}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild className={p.highlight ? "gradient-primary" : ""} variant={p.highlight ? "default" : "outline"}>
+                  <Link to={p.link}>{p.cta}</Link>
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
         </div>
       </section>
 

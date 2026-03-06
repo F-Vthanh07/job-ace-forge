@@ -23,10 +23,11 @@ const Premium = () => {
       const response = await subscriptionService.getAllPlans();
       
       if (response.success && response.data) {
-        // Filter for candidate plans only
+        // Filter for candidate plans only (active status)
         const candidatePlans = response.data.filter(plan => {
           const role = (plan.targetRole || "").trim().toLowerCase();
-          return role === "candidate";
+          const status = (plan.status || "").trim().toLowerCase();
+          return role === "candidate" && status === "active";
         });
         setPlans(candidatePlans);
       } else {

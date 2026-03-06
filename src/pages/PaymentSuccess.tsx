@@ -3,6 +3,8 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, Download, Sparkles } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { authService } from "@/services/authService";
 
 const PaymentSuccess = () => {
   const navigate = useNavigate();
@@ -14,11 +16,16 @@ const PaymentSuccess = () => {
     date?: string;
   } | undefined;
 
+  // Get planId from sessionStorage
+  const selectedPlanId = sessionStorage.getItem('selectedPlanId');
+  const selectedPlanName = sessionStorage.getItem('selectedPlanName');
+  const selectedPlanPrice = sessionStorage.getItem('selectedPlanPrice');
+
   // Use state data or default values
   const paymentDetails = {
     transactionId: stateData?.transactionId || "TXN-" + Date.now(),
-    planName: stateData?.planName || "Premium Plan",
-    amount: stateData?.amount || "699K VND",
+    planName: stateData?.planName || selectedPlanName || "Premium Plan",
+    amount: stateData?.amount || (selectedPlanPrice ? `${selectedPlanPrice} VND` : "699K VND"),
     date: stateData?.date || new Date().toLocaleDateString("vi-VN", {
       year: "numeric",
       month: "long",
@@ -27,6 +34,49 @@ const PaymentSuccess = () => {
       minute: "2-digit",
     }),
   };
+
+  // Apply subscription when component mounts
+  useEffect(() => {
+    const applySubscription = async () => {
+      if (!selectedPlanId) {
+        console.log('⚠️ No planId found in sessionStorage');
+        return;
+      }
+
+      try {
+        console.log('🔄 Applying subscription for planId:', selectedPlanId);
+        
+        const token = authService.getToken();
+        if (!token) {
+          console.error('❌ No authentication token found');
+          return;
+        }
+
+        const response = await fetch(
+          `https://aijobmatch.onrender.com/api/Transaction/apply-subscription?planId=${selectedPlanId}`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        const result = await response.json();
+        console.log('✅ Subscription applied successfully:', result);
+        
+        // Clear sessionStorage after successful application
+        sessionStorage.removeItem('selectedPlanId');
+        sessionStorage.removeItem('selectedPlanName');
+        sessionStorage.removeItem('selectedPlanPrice');
+      } catch (error) {
+        console.error('❌ Error applying subscription:', error);
+      }
+    };
+
+    applySubscription();
+  }, [selectedPlanId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -92,9 +142,9 @@ const PaymentSuccess = () => {
             <Button
               size="lg"
               className="flex-1 gradient-primary shadow-glow"
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/home")}
             >
-              Go to Dashboard
+              Go to Homepage
             </Button>
             
             <Button

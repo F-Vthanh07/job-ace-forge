@@ -42,16 +42,51 @@ interface CVPreviewProps {
 }
 
 export const CVPreview = ({ data, template, skills = [], workExperiences = [], educations = [] }: CVPreviewProps) => {
-  const templates = {
-    simple: () => <SimpleTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />,
-    modern: () => <ModernTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />,
-    professional: () => <ProfessionalTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />,
-    creative: () => <CreativeTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />,
+  // Normalize template name to lowercase and remove special characters
+  const normalizedTemplate = template.toLowerCase().replace(/[-_\s]/g, '');
+  
+  // Map common template name variations to valid template names
+  const templateMap: Record<string, string> = {
+    'simple': 'simple',
+    'modern': 'modern',
+    'modernprofessional01': 'modern',
+    'modernprofessional': 'modern',
+    'professional': 'professional',
+    'creative': 'creative',
   };
 
+  // Get the template or fallback to modern
+  const validTemplate = templateMap[normalizedTemplate] || 'modern';
+
+  // Render the appropriate template
+  if (validTemplate === 'simple') {
+    return (
+      <div className="w-full">
+        <SimpleTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />
+      </div>
+    );
+  }
+  
+  if (validTemplate === 'professional') {
+    return (
+      <div className="w-full">
+        <ProfessionalTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />
+      </div>
+    );
+  }
+  
+  if (validTemplate === 'creative') {
+    return (
+      <div className="w-full">
+        <CreativeTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />
+      </div>
+    );
+  }
+
+  // Default to modern template
   return (
     <div className="w-full">
-      {templates[template as keyof typeof templates]?.()}
+      <ModernTemplate data={data} skills={skills} workExperiences={workExperiences} educations={educations} />
     </div>
   );
 };

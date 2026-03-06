@@ -279,25 +279,41 @@ export const ApplyJobDialog = ({ open, onOpenChange, job, onApplicationSuccess }
             <DialogTitle>CV Preview - {previewCV?.fullName}</DialogTitle>
           </DialogHeader>
           <ScrollArea className="max-h-[75vh]">
-            {previewCV && (
-              <div className="bg-white p-8 rounded-lg">
-                <CVPreview
-                  data={{
-                    fullName: previewCV.fullName,
-                    email: previewCV.contacts.split("|")[1]?.trim() || "",
-                    phone: previewCV.contacts.split("|")[0]?.trim() || "",
-                    address: previewCV.workLocation,
-                    title: previewCV.jobtitle,
-                    summary: previewCV.aboutMe,
-                    photo: previewCV.avatarUrl || "",
-                  }}
-                  template={previewCV.template}
-                  skills={previewCV.skills}
-                  workExperiences={previewCV.workExperiences}
-                  educations={previewCV.educations}
-                />
-              </div>
-            )}
+            {previewCV && (() => {
+              // Normalize template name
+              const normalizeTemplate = (template: string): string => {
+                const normalized = template.toLowerCase().replace(/[-_\s]/g, '');
+                const templateMap: Record<string, string> = {
+                  'simple': 'simple',
+                  'modern': 'modern',
+                  'modernprofessional01': 'modern',
+                  'modernprofessional': 'modern',
+                  'professional': 'professional',
+                  'creative': 'creative',
+                };
+                return templateMap[normalized] || 'modern';
+              };
+
+              return (
+                <div className="bg-white p-8 rounded-lg">
+                  <CVPreview
+                    data={{
+                      fullName: previewCV.fullName,
+                      email: previewCV.contacts.split("|")[1]?.trim() || "",
+                      phone: previewCV.contacts.split("|")[0]?.trim() || "",
+                      address: previewCV.workLocation,
+                      title: previewCV.jobtitle,
+                      summary: previewCV.aboutMe,
+                      photo: previewCV.avatarUrl || "",
+                    }}
+                    template={normalizeTemplate(previewCV.template)}
+                    skills={previewCV.skills}
+                    workExperiences={previewCV.workExperiences}
+                    educations={previewCV.educations}
+                  />
+                </div>
+              );
+            })()}
           </ScrollArea>
           <DialogFooter>
             <Button onClick={() => setShowCVPreview(false)}>Close</Button>

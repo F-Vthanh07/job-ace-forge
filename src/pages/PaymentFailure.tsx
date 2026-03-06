@@ -3,10 +3,19 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { XCircle, AlertTriangle, ArrowLeft, RefreshCcw } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
 
 const PaymentFailure = () => {
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Clear sessionStorage on payment failure
+  useEffect(() => {
+    sessionStorage.removeItem('selectedPlanId');
+    sessionStorage.removeItem('selectedPlanName');
+    sessionStorage.removeItem('selectedPlanPrice');
+    console.log('❌ Payment failed - sessionStorage cleared');
+  }, []);
   const stateData = location.state as {
     transactionId?: string;
     planName?: string;
