@@ -21,12 +21,22 @@ interface RecentApplication {
   status: string;
 }
 
+interface ActiveJobListing {
+  id: string;
+  title: string;
+  applicants: number;
+  views: number;
+  daysLeft: number;
+}
+
 const RecruiterDashboard = () => {
   const navigate = useNavigate();
   const [companyData, setCompanyData] = useState<CompanyData | null>(null);
   const [loading, setLoading] = useState(true);
   const [recentApplications, setRecentApplications] = useState<RecentApplication[]>([]);
   const [loadingApplications, setLoadingApplications] = useState(false);
+  const [activeJobs, setActiveJobs] = useState<ActiveJobListing[]>([]);
+  const [loadingActiveJobs, setLoadingActiveJobs] = useState(false);
 
   useEffect(() => {
     // Delay fetching company data by 2 seconds to ensure user data is properly stored after login
@@ -41,6 +51,7 @@ const RecruiterDashboard = () => {
   useEffect(() => {
     if (companyData?.id) {
       fetchRecentApplications(companyData.id);
+      fetchActiveJobs(companyData.id);
     }
   }, [companyData]);
 
@@ -196,6 +207,70 @@ const RecruiterDashboard = () => {
     if (diffMins < 60) return `${diffMins} minutes ago`;
     if (diffHours < 24) return `${diffHours} hours ago`;
     return `${diffDays} days ago`;
+  };
+
+  const fetchActiveJobs = async (companyId: string) => {
+    try {
+      setLoadingActiveJobs(true);
+      console.log("📤 Fetching active jobs for dashboard...");
+
+      // Fetch all jobs for the company
+      const jobsResponse = await jobService.getJobsByCompanyId(companyId);
+      
+      if (!jobsResponse.success || !jobsResponse.data) {
+        console.error("❌ Failed to fetch jobs:", jobsResponse.message);
+        return;
+      }
+
+      const jobs = jobsResponse.data.filter(job => job.isActive);
+      console.log(`✅ Found ${jobs.length} active jobs`);
+
+      // For each job, fetch applications count
+      const jobsWithDataPromises = jobs.map(async (job) => {
+        try {
+          const applicationsResponse = await applicationService.getApplicationsByJobPostingId(job.id);
+          const applicantsCount = applicationsResponse.success && applicationsResponse.data
+            ? applicationsResponse.data.length
+            : 0;
+
+          // Calculate days left
+          const expiryDate = new Date(job.expiryDate);
+          const today = new Date();
+          const diffTime = expiryDate.getTime() - today.getTime();
+          const daysLeft = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+          return {
+            id: job.id,
+            title: job.title,
+            applicants: applicantsCount,
+            views: job.viewCount || 0,
+            daysLeft: Math.max(0, daysLeft), // Don't show negative days
+          };
+        } catch (error) {
+          console.error(`Error fetching data for job ${job.id}:`, error);
+          return {
+            id: job.id,
+            title: job.title,
+            applicants: 0,
+            views: job.viewCount || 0,
+            daysLeft: 0,
+          };
+        }
+      });
+
+      const jobsWithData = await Promise.all(jobsWithDataPromises);
+      
+      // Sort by most applicants and take top jobs
+      const sortedJobs = jobsWithData.sort((a, b) => b.applicants - a.applicants);
+      
+      console.log(`✅ Active jobs data loaded:`, sortedJobs);
+      setActiveJobs(sortedJobs);
+
+    } catch (error) {
+      console.error("❌ Error fetching active jobs:", error);
+    } finally {
+      setLoadingActiveJobs(false);
+    }
   };
 
   if (loading) {
@@ -386,21 +461,44 @@ const RecruiterDashboard = () => {
 
         {/* Active Job Listings */}
         <Card className="p-6">
-          <h2 className="text-2xl font-bold mb-6">Active Job Listings</h2>
-          <div className="grid md:grid-cols-2 gap-4">
-            <JobListingCard
-              title="Senior Frontend Developer"
-              applicants={45}
-              views={312}
-              daysLeft={12}
-            />
-            <JobListingCard
-              title="Full Stack Engineer"
-              applicants={38}
-              views={267}
-              daysLeft={8}
-            />
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold">Active Job Listings</h2>
+            <Link to="/manage-jobs">
+              <Button variant="outline" size="sm">View All</Button>
+            </Link>
           </div>
+          
+          {loadingActiveJobs ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : activeJobs.length === 0 ? (
+            <div className="text-center py-12">
+              <Briefcase className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+              <h3 className="text-xl font-semibold mb-2">No Active Jobs</h3>
+              <p className="text-muted-foreground mb-4">You haven't posted any jobs yet</p>
+              <Link to="/post-job">
+                <Button>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Post a Job
+                </Button>
+              </Link>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {activeJobs.slice(0, 6).map((job) => (
+                <JobListingCard
+                  key={job.id}
+                  id={job.id}
+                  title={job.title}
+                  applicants={job.applicants}
+                  views={job.views}
+                  daysLeft={job.daysLeft}
+                  onManage={() => navigate(`/candidates?job=${job.id}`)}
+                />
+              ))}
+            </div>
+          )}
         </Card>
       </div>
     </div>
@@ -408,33 +506,48 @@ const RecruiterDashboard = () => {
 };
 
 const JobListingCard = ({ 
+  id,
   title, 
   applicants, 
   views, 
-  daysLeft 
+  daysLeft,
+  onManage 
 }: { 
+  id: string;
   title: string; 
   applicants: number; 
   views: number; 
   daysLeft: number;
+  onManage?: () => void;
 }) => (
-  <div className="p-4 rounded-lg border">
-    <h3 className="font-semibold mb-3">{title}</h3>
+  <div className="p-4 rounded-lg border hover:border-primary transition-colors">
+    <h3 className="font-semibold mb-3 truncate" title={title}>{title}</h3>
     <div className="grid grid-cols-3 gap-2 text-sm mb-3">
       <div>
         <p className="text-muted-foreground">Applicants</p>
-        <p className="font-bold">{applicants}</p>
+        <p className="font-bold text-lg">{applicants}</p>
       </div>
       <div>
         <p className="text-muted-foreground">Views</p>
-        <p className="font-bold">{views}</p>
+        <p className="font-bold text-lg">{views}</p>
       </div>
       <div>
         <p className="text-muted-foreground">Days Left</p>
-        <p className="font-bold">{daysLeft}</p>
+        <p className={`font-bold text-lg ${
+          daysLeft === 0 ? "text-red-600" : 
+          daysLeft <= 3 ? "text-orange-600" : 
+          "text-green-600"
+        }`}>
+          {daysLeft === 0 ? "Expired" : daysLeft}
+        </p>
       </div>
     </div>
-    <Button variant="outline" size="sm" className="w-full">
+    <Button 
+      variant="outline" 
+      size="sm" 
+      className="w-full"
+      onClick={onManage}
+    >
       Manage
     </Button>
   </div>

@@ -48,7 +48,7 @@ const formatDate = (dateString: string) => {
 
 export const SimpleTemplate = ({ data, skills = [], workExperiences = [], educations = [] }: SimpleTemplateProps) => {
   return (
-    <div className="bg-background p-8 space-y-6" id="cv-preview">
+    <div className="bg-background w-full min-h-[800px] p-8 space-y-6 border rounded-lg shadow-sm" id="cv-preview">
       <div className="text-center border-b-2 border-primary pb-4">
         {data.photo && (
           <div className="w-32 h-32 rounded-full mx-auto mb-4 overflow-hidden border-4 border-primary">

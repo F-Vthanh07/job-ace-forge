@@ -48,10 +48,10 @@ const formatDate = (dateString: string) => {
 
 export const ProfessionalTemplate = ({ data, skills = [], workExperiences = [], educations = [] }: ProfessionalTemplateProps) => {
   return (
-    <div className="bg-background p-8 space-y-6" id="cv-preview">
-      <div className="grid grid-cols-4 gap-6 border-b-4 border-primary pb-6">
-        <div className="col-span-1">
-          <div className="w-full aspect-square bg-muted rounded overflow-hidden border-2 border-primary">
+    <div className="bg-background w-full min-h-[800px] p-8 space-y-6 border rounded-lg shadow-sm" id="cv-preview">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 border-b-4 border-primary pb-6">
+        <div className="md:col-span-1 flex justify-center md:justify-start">
+          <div className="w-48 md:w-full aspect-square bg-muted rounded overflow-hidden border-2 border-primary">
             {data.photo ? (
               <img src={data.photo} alt={data.fullName} className="w-full h-full object-cover" />
             ) : (
@@ -59,10 +59,10 @@ export const ProfessionalTemplate = ({ data, skills = [], workExperiences = [], 
             )}
           </div>
         </div>
-        <div className="col-span-3">
+        <div className="md:col-span-3">
           <h1 className="text-4xl font-bold text-primary mb-2">{data.fullName}</h1>
           <p className="text-2xl text-foreground mb-4">{data.title}</p>
-          <div className="grid grid-cols-3 gap-4 text-sm text-foreground">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-foreground">
             {data.email && (
               <div className="flex items-start gap-2">
                 <Mail className="h-4 w-4 text-primary mt-1" />
@@ -94,8 +94,8 @@ export const ProfessionalTemplate = ({ data, skills = [], workExperiences = [], 
         </div>
       </div>
 
-      <div className="grid grid-cols-4 gap-6">
-        <div className="col-span-3 space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        <div className="md:col-span-3 space-y-6">
           <div>
             <h2 className="text-xl font-bold text-primary uppercase mb-3">Mục tiêu nghề nghiệp</h2>
             <p className="text-foreground whitespace-pre-wrap">{data.summary}</p>
@@ -131,7 +131,7 @@ export const ProfessionalTemplate = ({ data, skills = [], workExperiences = [], 
           )}
         </div>
 
-        <div className="col-span-1 space-y-6">
+        <div className="md:col-span-1 space-y-6">
           {educations.length > 0 && (
             <div>
               <h2 className="text-lg font-bold text-primary uppercase mb-3 flex items-center gap-2">

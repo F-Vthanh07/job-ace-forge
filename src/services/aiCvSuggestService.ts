@@ -62,6 +62,7 @@ export interface ApiResponse<T> {
   success: boolean;
   data?: T;
   message: string;
+  statusCode?: number;
 }
 
 class AICVSuggestService {
@@ -109,9 +110,16 @@ class AICVSuggestService {
         console.error("   Error Data:", errorData);
         console.error("   Error Message:", errorData?.message);
         
+        // Special handling for 403 Premium expired
+        if (response.status === 403) {
+          console.error("🚫 403 Forbidden - Premium required or expired");
+          console.error("   Full Response:", errorData);
+        }
+        
         return {
           success: false,
           message: errorData?.message || `Failed to get CV review: ${response.status}`,
+          statusCode: response.status,
         };
       }
     } catch (error) {

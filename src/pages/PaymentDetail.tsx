@@ -64,6 +64,11 @@ const PaymentDetail = () => {
           description: "You will be redirected to PayOS for payment"
         });
 
+        // Save planId to sessionStorage for later use in payment success page
+        sessionStorage.setItem('selectedPlanId', planInfo.id);
+        sessionStorage.setItem('selectedPlanName', planInfo.name);
+        sessionStorage.setItem('selectedPlanPrice', formatPrice(planInfo.price));
+
         // Redirect to PayOS payment page
         globalThis.location.href = response.paymentUrl;
       } else {

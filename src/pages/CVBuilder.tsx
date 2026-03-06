@@ -203,7 +203,11 @@ const CVBuilder = () => {
 
   // Handle phone number with country code
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/\D/g, ''); // Only numbers
+    let value = e.target.value.replace(/\D/g, ''); // Only numbers
+    // Auto-remove leading zero
+    if (value.startsWith('0')) {
+      value = value.substring(1);
+    }
     setPhoneWithoutCode(value);
     setFormData((prev) => ({
       ...prev,
@@ -259,7 +263,6 @@ const CVBuilder = () => {
 
   const validateSummary = (summary: string): string | null => {
     if (!summary || !summary.trim()) return "Professional summary is required";
-    if (summary.trim().length < 50) return "Summary must be at least 50 characters";
     if (summary.length > 2000) return "Summary must not exceed 2000 characters";
     return null;
   };
@@ -515,6 +518,7 @@ const CVBuilder = () => {
       console.log("🔍 Response success:", response.success);
       console.log("🔍 Response message:", response.message);
       console.log("🔍 Response data:", response.data);
+      console.log("🔍 Response status code:", response.statusCode);
       
       if (response.success && response.data) {
         setAiReview(response.data);
@@ -522,9 +526,11 @@ const CVBuilder = () => {
           title: "AI Review Completed",
           description: `Your CV score: ${response.data.score}/100`,
         });
-      } else if (response.message === "You can not use this feature") {
-        // User doesn't have subscription - show premium required notification
-        console.log("⚠️ User doesn't have subscription - showing premium notification");
+      } else if (response.statusCode === 403 || response.message?.includes("Premium") || response.message === "You can not use this feature") {
+        // User doesn't have subscription or premium expired
+        console.log("⚠️ Premium required or expired - showing notification");
+        console.log("⚠️ Error message:", response.message);
+        
         notifyPremiumRequired(() => navigate("/premium"));
       } else {
         console.error("❌ AI Review failed with message:", response.message);
@@ -861,9 +867,6 @@ const CVBuilder = () => {
                             <span>{errors.summary}</span>
                           </div>
                         )}
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Minimum 50 characters ({formData.summary.length}/50)
-                        </p>
                       </div>
 
                       <div className="grid md:grid-cols-2 gap-4">
@@ -1710,13 +1713,13 @@ const CVBuilder = () => {
                 )}
 
                 <div className="space-y-2 mb-4">
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" className="w-full justify-start" disabled>
                     {t("cvBuilder.improveSummary")}
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" className="w-full justify-start" disabled>
                     {t("cvBuilder.optimizeKeywords")}
                   </Button>
-                  <Button variant="outline" className="w-full justify-start">
+                  <Button variant="outline" className="w-full justify-start" disabled>
                     {t("cvBuilder.checkGrammar")}
                   </Button>
                 </div>

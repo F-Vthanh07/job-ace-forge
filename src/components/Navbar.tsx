@@ -60,14 +60,12 @@ export const Navbar = () => {
   const isAuthPage = location.pathname === "/login" || 
                       location.pathname === "/signup" || 
                       location.pathname === "/recruiter-login" ||
-                      location.pathname === "/recruiter-signup" ||
-                      location.pathname === "/";
+                      location.pathname === "/recruiter-signup";
   
   if (isAuthPage) return null;
 
   const candidateLinks = [
     { name: t("nav.jobs"), path: "/jobs" },
-    { name: t("nav.dashboard"), path: "/dashboard" },
     { name: t("nav.cvBuilder"), path: "/cv-builder" },
     { name: t("nav.mockInterview"), path: "/interview-setup" },
   ];
@@ -186,6 +184,11 @@ export const Navbar = () => {
                     </div>
                   </div>
                   <div className="mt-3 grid gap-2">
+                    {!isAdminPath && !isRecruiterPath && (
+                      <Button variant="outline" size="sm" asChild>
+                        <Link to="/dashboard">{t("nav.dashboard")}</Link>
+                      </Button>
+                    )}
                     {!isAdminPath && (
                       <Button variant="outline" size="sm" asChild>
                         <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>{t("common.viewProfile")}</Link>
@@ -240,6 +243,19 @@ export const Navbar = () => {
                   {link.name}
                 </Link>
               ))}
+              {!isAdminPath && !isRecruiterPath && (
+                <Link
+                  to="/dashboard"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    location.pathname === "/dashboard"
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-secondary"
+                  }`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
+                  {t("nav.dashboard")}
+                </Link>
+              )}
               {!isAdminPath && (
                 <Link
                   to={isRecruiterPath ? "/business-profile" : "/profile"}
