@@ -6,7 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Sparkles, Loader2 } from "lucide-react";
 import { authService } from "@/services/authService";
-import { notifyError, notifySuccess, notifyWarning } from "@/utils/notification";
+import { 
+  notifyError, 
+  notifyAuthSuccess, 
+  notifyWarning
+} from "@/utils/notification";
 
 const Login = () => {
   const navigate = useNavigate();
@@ -47,14 +51,20 @@ const Login = () => {
       
       if (!captchaToken) {
         console.error("❌ Missing captcha token");
-        notifyWarning("Vui lòng hoàn thành xác thực bảo mật.");
+        notifyWarning({
+          title: "Cần xác minh bảo mật",
+          description: "Vui lòng hoàn thành bước xác minh bảo mật"
+        });
         setLoading(false);
         return;
       }
 
       if (!email || !password) {
         console.error("❌ Missing email or password");
-        notifyWarning("Vui lòng nhập email và mật khẩu.");
+        notifyWarning({
+          title: "Thiếu thông tin",
+          description: "Vui lòng nhập email và mật khẩu"
+        });
         setLoading(false);
         return;
       }
@@ -74,7 +84,10 @@ const Login = () => {
 
       if (result.success && result.data?.token) {
         console.log("✅ Login successful!");
-        notifySuccess("Đăng nhập thành công!");
+        
+        // Get user name for personalized greeting
+        const userName = result.data.user?.fullName || result.data.user?.email?.split('@')[0];
+        notifyAuthSuccess(userName);
 
         // Navigate based on user role
         const userRole = result.data.user?.role?.toLowerCase();
@@ -90,7 +103,7 @@ const Login = () => {
         }
       } else {
         console.error("❌ Login failed:", result.message);
-        notifyError(result.message);
+        notifyError(result.message || "Email hoặc mật khẩu không đúng", "Đăng nhập thất bại");
         authService.resetTurnstile();
       }
     } catch (err) {

@@ -1,11 +1,20 @@
 /**
- * Notification Utility using Ant Design
- * Provides user-friendly notifications
+ * Enhanced Notification System
+ * Professional, user-friendly notifications with icons and actions
  */
 
-import { notification, Button } from "antd";
-import { getFriendlyErrorMessage } from "./errorHandler";
+import { notification } from "antd";
+import { 
+  CheckCircleOutlined, 
+  CloseCircleOutlined, 
+  ExclamationCircleOutlined,
+  InfoCircleOutlined,
+  RocketOutlined,
+  SafetyOutlined,
+  ThunderboltOutlined
+} from "@ant-design/icons";
 import React from "react";
+import { getFriendlyErrorMessage } from "./errorHandler";
 
 type NotificationType = "success" | "error" | "info" | "warning";
 
@@ -13,7 +22,19 @@ interface NotifyOptions {
   title?: string;
   description?: string;
   duration?: number;
+  action?: {
+    label: string;
+    onClick: () => void;
+  };
 }
+
+// Configure notification globally
+notification.config({
+  placement: "topRight",
+  top: 24,
+  duration: 4.5,
+  maxCount: 3,
+});
 
 /**
  * Show success notification
@@ -26,22 +47,62 @@ export function notifySuccess(options: NotifyOptions | string) {
   notification.success({
     message: config.title || "Thành công",
     description: config.description,
-    duration: config.duration || 4,
-    placement: "topRight",
+    duration: config.duration || 4.5,
+    icon: React.createElement(CheckCircleOutlined, { 
+      style: { color: '#52c41a' }
+    }),
+    style: {
+      borderLeft: '4px solid #52c41a',
+      backgroundColor: '#f6ffed',
+      borderRadius: '8px',
+    },
+    btn: config.action ? React.createElement('button', {
+      onClick: config.action.onClick,
+      style: {
+        background: '#52c41a',
+        color: 'white',
+        border: 'none',
+        padding: '6px 16px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 500,
+      }
+    }, config.action.label) : undefined,
   });
 }
 
 /**
  * Show error notification with user-friendly message
  */
-export function notifyError(error: string | Error | unknown, customTitle?: string) {
-  const friendlyMessage = getFriendlyErrorMessage(error);
+export function notifyError(error: unknown, customTitle?: string, action?: NotifyOptions['action']) {
+  const friendlyMessage = typeof error === 'string' ? error : getFriendlyErrorMessage(error);
 
   notification.error({
     message: customTitle || "Có lỗi xảy ra",
     description: friendlyMessage,
-    duration: 5,
-    placement: "topRight",
+    duration: 6,
+    icon: React.createElement(CloseCircleOutlined, { 
+      style: { color: '#ff4d4f' }
+    }),
+    style: {
+      borderLeft: '4px solid #ff4d4f',
+      backgroundColor: '#fff2f0',
+      borderRadius: '8px',
+    },
+    btn: action ? React.createElement('button', {
+      onClick: action.onClick,
+      style: {
+        background: '#ff4d4f',
+        color: 'white',
+        border: 'none',
+        padding: '6px 16px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 500,
+      }
+    }, action.label) : undefined,
   });
 }
 
@@ -56,8 +117,28 @@ export function notifyWarning(options: NotifyOptions | string) {
   notification.warning({
     message: config.title || "Cảnh báo",
     description: config.description,
-    duration: config.duration || 4,
-    placement: "topRight",
+    duration: config.duration || 5,
+    icon: React.createElement(ExclamationCircleOutlined, { 
+      style: { color: '#faad14' }
+    }),
+    style: {
+      borderLeft: '4px solid #faad14',
+      backgroundColor: '#fffbe6',
+      borderRadius: '8px',
+    },
+    btn: config.action ? React.createElement('button', {
+      onClick: config.action.onClick,
+      style: {
+        background: '#faad14',
+        color: 'white',
+        border: 'none',
+        padding: '6px 16px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 500,
+      }
+    }, config.action.label) : undefined,
   });
 }
 
@@ -72,8 +153,117 @@ export function notifyInfo(options: NotifyOptions | string) {
   notification.info({
     message: config.title || "Thông báo",
     description: config.description,
-    duration: config.duration || 4,
-    placement: "topRight",
+    duration: config.duration || 4.5,
+    icon: React.createElement(InfoCircleOutlined, { 
+      style: { color: '#1890ff' }
+    }),
+    style: {
+      borderLeft: '4px solid #1890ff',
+      backgroundColor: '#e6f7ff',
+      borderRadius: '8px',
+    },
+    btn: config.action ? React.createElement('button', {
+      onClick: config.action.onClick,
+      style: {
+        background: '#1890ff',
+        color: 'white',
+        border: 'none',
+        padding: '6px 16px',
+        borderRadius: '6px',
+        cursor: 'pointer',
+        fontSize: '14px',
+        fontWeight: 500,
+      }
+    }, config.action.label) : undefined,
+  });
+}
+
+/**
+ * Special notification types
+ */
+
+// Authentication success
+export function notifyAuthSuccess(userName?: string) {
+  notification.success({
+    message: "Chào mừng!",
+    description: userName ? `Xin chào ${userName}, bạn đã đăng nhập thành công` : "Bạn đã đăng nhập thành công",
+    duration: 3.5,
+    icon: React.createElement(RocketOutlined, { 
+      style: { color: '#52c41a' }
+    }),
+    style: {
+      borderLeft: '4px solid #52c41a',
+      backgroundColor: '#f6ffed',
+      borderRadius: '8px',
+    },
+  });
+}
+
+// Login required notification
+export function notifyLoginRequired() {
+  notification.warning({
+    message: "Cần đăng nhập",
+    description: "Vui lòng đăng nhập để tiếp tục",
+    duration: 4,
+    icon: React.createElement(SafetyOutlined, { 
+      style: { color: '#faad14' }
+    }),
+    style: {
+      borderLeft: '4px solid #faad14',
+      backgroundColor: '#fffbe6',
+      borderRadius: '8px',
+    },
+  });
+}
+
+// Permission denied
+export function notifyPermissionDenied(message?: string) {
+  notification.error({
+    message: "Không có quyền truy cập",
+    description: message || "Bạn không có quyền thực hiện thao tác này",
+    duration: 4.5,
+    icon: React.createElement(CloseCircleOutlined, { 
+      style: { color: '#ff4d4f' }
+    }),
+    style: {
+      borderLeft: '4px solid #ff4d4f',
+      backgroundColor: '#fff2f0',
+      borderRadius: '8px',
+    },
+  });
+}
+
+// Action completed
+export function notifyActionComplete(action: string) {
+  notification.success({
+    message: "Hoàn thành!",
+    description: `${action} đã thực hiện thành công`,
+    duration: 3,
+    icon: React.createElement(ThunderboltOutlined, { 
+      style: { color: '#52c41a' }
+    }),
+    style: {
+      borderLeft: '4px solid #52c41a',
+      backgroundColor: '#f6ffed',
+      borderRadius: '8px',
+    },
+  });
+}
+
+// Network error
+export function notifyNetworkError() {
+  notification.error({
+    message: "Lỗi kết nối",
+    description: "Vui lòng kiểm tra kết nối mạng và thử lại",
+    duration: 5,
+    icon: React.createElement(CloseCircleOutlined, { 
+      style: { color: '#ff4d4f' }
+    }),
+    style: {
+      borderLeft: '4px solid #ff4d4f',
+      backgroundColor: '#fff2f0',
+      borderRadius: '8px',
+    },
   });
 }
 

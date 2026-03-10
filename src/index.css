@@ -204,3 +204,144 @@ All colors MUST be HSL.
     background-color: hsl(var(--primary) / 0.6);
   }
 }
+
+/* Enhanced Notification Animations */
+@layer utilities {
+  /* Ant Design notification custom styles */
+  .ant-notification {
+    z-index: 9999 !important;
+  }
+
+  .ant-notification-notice {
+    padding: 16px 24px !important;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15), 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    backdrop-filter: blur(10px) !important;
+    animation: slideInRight 0.4s cubic-bezier(0.16, 1, 0.3, 1) !important;
+    background: rgba(30, 30, 35, 0.98) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+  }
+
+  .ant-notification-notice-message {
+    font-weight: 600 !important;
+    font-size: 15px !important;
+    margin-bottom: 4px !important;
+    color: rgba(255, 255, 255, 0.95) !important;
+  }
+
+  .ant-notification-notice-description {
+    font-size: 14px !important;
+    opacity: 0.9 !important;
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  .ant-notification-notice-icon {
+    font-size: 24px !important;
+    margin-top: 2px !important;
+  }
+
+  .ant-notification-notice-close {
+    opacity: 0.6 !important;
+    transition: opacity 0.2s !important;
+    color: rgba(255, 255, 255, 0.65) !important;
+  }
+
+  .ant-notification-notice-close:hover {
+    opacity: 1 !important;
+  }
+
+  /* Light mode - Màu theo loại thông báo */
+  .ant-notification-notice-success {
+    background: rgba(16, 185, 129, 0.2) !important;
+    border-left: 4px solid #10b981 !important;
+  }
+
+  .ant-notification-notice-error {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-left: 4px solid #ef4444 !important;
+  }
+
+  .ant-notification-notice-warning {
+    background: rgba(245, 158, 11, 0.2) !important;
+    border-left: 4px solid #f59e0b !important;
+  }
+
+  .ant-notification-notice-info {
+    background: rgba(59, 130, 246, 0.2) !important;
+    border-left: 4px solid #3b82f6 !important;
+  }
+
+  /* Dark mode - Nền trắng, chữ đen */
+  .dark .ant-notification-notice {
+    background: rgba(255, 255, 255, 0.98) !important;
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+  }
+
+  .dark .ant-notification-notice-message {
+    color: rgba(0, 0, 0, 0.95) !important;
+  }
+
+  .dark .ant-notification-notice-description {
+    color: rgba(0, 0, 0, 0.75) !important;
+  }
+
+  .dark .ant-notification-notice-close {
+    color: rgba(0, 0, 0, 0.65) !important;
+  }
+
+  /* Dark mode - Màu theo loại thông báo */
+  .dark .ant-notification-notice-success {
+    background: rgba(220, 252, 231, 1) !important;
+    border-left: 4px solid #10b981 !important;
+  }
+
+  .dark .ant-notification-notice-error {
+    background: rgba(254, 226, 226, 1) !important;
+    border-left: 4px solid #ef4444 !important;
+  }
+
+  .dark .ant-notification-notice-warning {
+    background: rgba(254, 243, 199, 1) !important;
+    border-left: 4px solid #f59e0b !important;
+  }
+
+  .dark .ant-notification-notice-info {
+    background: rgba(219, 234, 254, 1) !important;
+    border-left: 4px solid #3b82f6 !important;
+  }
+
+  @keyframes slideInRight {
+    from {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateX(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideOutRight {
+    from {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    to {
+      transform: translateX(100%);
+      opacity: 0;
+    }
+  }
+
+  /* Notification button styles */
+  .ant-notification-notice button {
+    transition: all 0.2s ease !important;
+  }
+
+  .ant-notification-notice button:hover {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .ant-notification-notice button:active {
+    transform: translateY(0) !important;
+  }
+}

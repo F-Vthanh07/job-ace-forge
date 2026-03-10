@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { notifyError, notifyNetworkError } from "@/utils/notification";
 
 interface DashboardData {
   totalRevenue: number;
@@ -56,7 +56,6 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [loadingPlans, setLoadingPlans] = useState(true);
   const [loadingUserStats, setLoadingUserStats] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -67,19 +66,11 @@ const AdminDashboard = () => {
         if (result.success) {
           setDashboardData(result.data);
         } else {
-          toast({
-            title: "Error",
-            description: "Failed to load dashboard data",
-            variant: "destructive"
-          });
+          notifyError("Failed to load dashboard data", "Data Error");
         }
       } catch (error) {
         console.error("Failed to fetch dashboard data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to connect to the server",
-          variant: "destructive"
-        });
+        notifyNetworkError();
       } finally {
         setLoading(false);
       }
@@ -93,19 +84,11 @@ const AdminDashboard = () => {
         if (result.success) {
           setSubscriptionPlans(result.data);
         } else {
-          toast({
-            title: "Error",
-            description: "Failed to load subscription plans",
-            variant: "destructive"
-          });
+          notifyError("Failed to load subscription plans", "Data Error");
         }
       } catch (error) {
         console.error("Failed to fetch subscription plans:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load subscription plans",
-          variant: "destructive"
-        });
+        notifyError("Failed to load subscription plans", "Data Error");
       } finally {
         setLoadingPlans(false);
       }
@@ -119,19 +102,11 @@ const AdminDashboard = () => {
         if (result.success) {
           setUserStats(result.data);
         } else {
-          toast({
-            title: "Error",
-            description: "Failed to load user statistics",
-            variant: "destructive"
-          });
+          notifyError("Failed to load user statistics", "Data Error");
         }
       } catch (error) {
         console.error("Failed to fetch user statistics:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load user statistics",
-          variant: "destructive"
-        });
+        notifyError("Failed to load user statistics", "Data Error");
       } finally {
         setLoadingUserStats(false);
       }
@@ -140,7 +115,7 @@ const AdminDashboard = () => {
     fetchDashboardData();
     fetchSubscriptionPlans();
     fetchUserStatistics();
-  }, [toast]);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {

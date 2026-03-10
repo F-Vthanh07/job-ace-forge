@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState, useEffect } from "react";
-import { useToast } from "@/hooks/use-toast";
+import { notifyNetworkError } from "@/utils/notification";
 
 interface DashboardData {
   totalRevenue: number;
@@ -58,7 +58,6 @@ const AdminReports = () => {
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
   const [userStats, setUserStats] = useState<UserStatistics | null>(null);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
 
   useEffect(() => {
     const fetchAllData = async () => {
@@ -86,18 +85,14 @@ const AdminReports = () => {
         }
       } catch (error) {
         console.error("Failed to fetch data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load report data",
-          variant: "destructive"
-        });
+        notifyNetworkError();
       } finally {
         setLoading(false);
       }
     };
 
     fetchAllData();
-  }, [toast]);
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
