@@ -40,11 +40,22 @@ interface SubscriptionPlan {
   expiredSubscriptions: number;
 }
 
+interface UserStatistics {
+  totalUsers: number;
+  candidateUsers: number;
+  recruiterUsers: number;
+  usersWithActiveSubscription: number;
+  usersWithExpiredSubscription: number;
+  subscriptionConversionRate: number;
+}
+
 const AdminDashboard = () => {
   const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [userStats, setUserStats] = useState<UserStatistics | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadingPlans, setLoadingPlans] = useState(true);
+  const [loadingUserStats, setLoadingUserStats] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -100,8 +111,35 @@ const AdminDashboard = () => {
       }
     };
 
+    const fetchUserStatistics = async () => {
+      try {
+        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/user-statistics');
+        const result = await response.json();
+        
+        if (result.success) {
+          setUserStats(result.data);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load user statistics",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch user statistics:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load user statistics",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingUserStats(false);
+      }
+    };
+
     fetchDashboardData();
     fetchSubscriptionPlans();
+    fetchUserStatistics();
   }, [toast]);
 
   const formatCurrency = (amount: number) => {
@@ -348,6 +386,105 @@ const AdminDashboard = () => {
                   </div>
                 </Card>
               ))}
+            </div>
+          )}
+        </Card>
+
+        {/* User Statistics Section */}
+        <Card className="p-6 mt-6">
+          <div className="flex items-center gap-3 mb-6">
+            <Users className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">User Statistics</h2>
+          </div>
+          
+          {loadingUserStats && (
+            <div className="text-center py-8 text-muted-foreground">Loading user statistics...</div>
+          )}
+          {!loadingUserStats && userStats && (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              <Card className="p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/10 border-blue-500/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-full bg-blue-500/20">
+                    <Users className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Total Users</p>
+                    <p className="text-3xl font-bold text-blue-600 dark:text-blue-400">
+                      {userStats.totalUsers}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-gradient-to-br from-green-500/10 to-green-600/10 border-green-500/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-full bg-green-500/20">
+                    <Briefcase className="h-8 w-8 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Candidate Users</p>
+                    <p className="text-3xl font-bold text-green-600 dark:text-green-400">
+                      {userStats.candidateUsers}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/10 border-purple-500/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-full bg-purple-500/20">
+                    <Building2 className="h-8 w-8 text-purple-600 dark:text-purple-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Recruiter Users</p>
+                    <p className="text-3xl font-bold text-purple-600 dark:text-purple-400">
+                      {userStats.recruiterUsers}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-gradient-to-br from-emerald-500/10 to-emerald-600/10 border-emerald-500/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-full bg-emerald-500/20">
+                    <CheckCircle className="h-8 w-8 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Active Subscriptions</p>
+                    <p className="text-3xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {userStats.usersWithActiveSubscription}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-gradient-to-br from-red-500/10 to-red-600/10 border-red-500/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-full bg-red-500/20">
+                    <XCircle className="h-8 w-8 text-red-600 dark:text-red-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Expired Subscriptions</p>
+                    <p className="text-3xl font-bold text-red-600 dark:text-red-400">
+                      {userStats.usersWithExpiredSubscription}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+
+              <Card className="p-6 bg-gradient-to-br from-amber-500/10 to-amber-600/10 border-amber-500/20">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-full bg-amber-500/20">
+                    <TrendingUp className="h-8 w-8 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-muted-foreground font-medium">Conversion Rate</p>
+                    <p className="text-3xl font-bold text-amber-600 dark:text-amber-400">
+                      {userStats.subscriptionConversionRate.toFixed(1)}%
+                    </p>
+                  </div>
+                </div>
+              </Card>
             </div>
           )}
         </Card>
