@@ -453,6 +453,81 @@ class JobService {
 
     return this.updateJobPosting(job.id, updateData);
   }
+
+  /**
+   * Delete job posting by ID
+   */
+  async deleteJob(jobId: string): Promise<JobPostingResponse> {
+    try {
+      const token = localStorage.getItem("authToken");
+      
+      if (!token) {
+        console.error("❌ Auth token not found");
+        return {
+          success: false,
+          message: "Authentication required. Please login again.",
+        };
+      }
+
+      console.log(`📤 Deleting job: ${jobId}`);
+
+      const response = await fetch(`${API_BASE_URL}/JobPosting/delete/${jobId}`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      console.log(`📡 Response status: ${response.status} ${response.statusText}`);
+
+      if (!response.ok) {
+        let errorMessage = `Failed to delete job: ${response.status}`;
+        try {
+          const contentType = response.headers.get("content-type");
+          if (contentType && contentType.includes("application/json")) {
+            const errorData = await response.json();
+            console.error("❌ API Error details:", errorData);
+            errorMessage = errorData.message || errorData.title || errorMessage;
+          } else {
+            const errorText = await response.text();
+            console.error("❌ API Error text:", errorText);
+            if (errorText) errorMessage = errorText;
+          }
+        } catch (parseError) {
+          console.error("❌ Error parsing error response:", parseError);
+        }
+
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+
+      try {
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("application/json")) {
+          const result = await response.json();
+          console.log("✅ Job deleted successfully:", result);
+        } else {
+          console.log("✅ Job deleted successfully");
+        }
+      } catch (parseError) {
+        console.log("✅ Job deleted successfully (no parseable response)");
+      }
+
+      return {
+        success: true,
+        message: "Job posting deleted successfully",
+      };
+    } catch (error) {
+      console.error("❌ Error deleting job:", error);
+      return {
+        success: false,
+        message: "Network error. Please try again.",
+      };
+    }
+  }
 }
 
 export const jobService = new JobService();

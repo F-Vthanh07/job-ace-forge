@@ -29,12 +29,22 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { jobService, JobData, JobPostingRequest } from "@/services/jobService";
-import { useToast } from "@/hooks/use-toast";
+import { notifySuccess, notifyError, notifyWarning } from "@/utils/notification";
 
 const ManageJobs = () => {
   const [jobs, setJobs] = useState<JobData[]>([]);
@@ -45,7 +55,8 @@ const ManageJobs = () => {
   const [editingJob, setEditingJob] = useState<JobData | null>(null);
   const [editFormData, setEditFormData] = useState<JobPostingRequest | null>(null);
   const [submitting, setSubmitting] = useState(false);
-  const { toast } = useToast();
+  const [deletingJob, setDeletingJob] = useState<JobData | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchJobs();
@@ -59,11 +70,7 @@ const ManageJobs = () => {
       // Get company data from localStorage
       const companyDataStr = localStorage.getItem("recruiterCompany");
       if (!companyDataStr) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Company information not found. Please login again.",
-        });
+        notifyError("Không tìm thấy thông tin công ty. Vui lòng đăng nhập lại.");
         return;
       }
 
@@ -71,11 +78,7 @@ const ManageJobs = () => {
       console.log("🏢 Company data:", companyData);
 
       if (!companyData.id) {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Company ID not found.",
-        });
+        notifyError("Không tìm thấy ID công ty.");
         return;
       }
 
@@ -84,24 +87,14 @@ const ManageJobs = () => {
 
       if (response.success && response.data) {
         setJobs(response.data);
-        toast({
-          title: "Success",
-          description: `Loaded ${response.data.length} job posting(s)`,
-        });
+        notifySuccess(`Đã tải ${response.data.length} tin tuyển dụng`);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: response.message || "Failed to load jobs",
-        });
+        notifyError(response.message || "Không thể tải danh sách công việc");
       }
     } catch (error) {
       console.error("❌ Error fetching jobs:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load jobs. Please try again.",
-      });
+      notifyError(error);
+      // Error already handled above
     } finally {
       setLoading(false);
     }
@@ -158,24 +151,13 @@ const ManageJobs = () => {
           )
         );
 
-        toast({
-          title: "Success",
-          description: `Job ${!job.isActive ? "activated" : "deactivated"} successfully`,
-        });
+        notifySuccess(`Tin tuyển dụng đã ${!job.isActive ? "được kích hoạt" : "bị vô hiệu hóa"} thành công`);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: response.message || "Failed to update job status",
-        });
+        notifyError(response.message || "Không thể cập nhật trạng thái");
       }
     } catch (error) {
       console.error("❌ Error toggling job status:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to update job status. Please try again.",
-      });
+      notifyError("Không thể cập nhật trạng thái. Vui lòng thử lại.");
     } finally {
       setTogglingStatus(null);
     }
@@ -215,19 +197,17 @@ const ManageJobs = () => {
 
     // Validation
     if (!editFormData.title.trim()) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Job title is required",
+      notifyWarning({
+        title: "Thiếu thông tin",
+        description: "Tiêu đề công việc không được để trống"
       });
       return;
     }
 
     if (editFormData.minSalary > editFormData.maxSalary) {
-      toast({
-        variant: "destructive",
-        title: "Validation Error",
-        description: "Minimum salary cannot be greater than maximum salary",
+      notifyWarning({
+        title: "Lương không hợp lệ",
+        description: "Lương tối thiểu không thể lớn hơn lương tối đa"
       });
       return;
     }
@@ -246,29 +226,48 @@ const ManageJobs = () => {
           )
         );
 
-        toast({
-          title: "Success",
-          description: "Job updated successfully",
-        });
+        notifySuccess("Đã cập nhật tin tuyển dụng thành công");
 
         setEditingJob(null);
         setEditFormData(null);
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: response.message || "Failed to update job",
-        });
+        notifyError(response.message || "Không thể cập nhật tin tuyển dụng");
       }
     } catch (error) {
       console.error("❌ Error updating job:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An error occurred. Please try again.",
-      });
+      notifyError("Có lỗi xảy ra. Vui lòng thử lại.");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteClick = (job: JobData) => {
+    setDeletingJob(job);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deletingJob) return;
+
+    try {
+      setIsDeleting(true);
+      console.log(`🗑️ Deleting job: ${deletingJob.id}`);
+
+      const response = await jobService.deleteJob(deletingJob.id);
+
+      if (response.success) {
+        // Remove from local state
+        setJobs((prevJobs) => prevJobs.filter((j) => j.id !== deletingJob.id));
+        
+        notifySuccess("Đã xóa tin tuyển dụng thành công");
+        setDeletingJob(null);
+      } else {
+        notifyError(response.message || "Không thể xóa tin tuyển dụng");
+      }
+    } catch (error) {
+      console.error("❌ Error deleting job:", error);
+      notifyError("Có lỗi xảy ra khi xóa tin tuyển dụng");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -431,7 +430,12 @@ const ManageJobs = () => {
                         </>
                       )}
                     </Button>
-                    <Button variant="outline" size="sm" className="text-destructive">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-destructive"
+                      onClick={() => handleDeleteClick(job)}
+                    >
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -666,6 +670,45 @@ const ManageJobs = () => {
             )}
           </DialogContent>
         </Dialog>
+
+        {/* Delete Confirmation Dialog */}
+        <AlertDialog open={!!deletingJob} onOpenChange={(open) => {
+          if (!open) setDeletingJob(null);
+        }}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Xác nhận xóa tin tuyển dụng</AlertDialogTitle>
+              <AlertDialogDescription>
+                Bạn có chắc chắn muốn xóa tin tuyển dụng <strong>"{deletingJob?.title}"</strong>?
+                <br />
+                <br />
+                Hành động này không thể hoàn tác. Tin tuyển dụng sẽ bị xóa vĩnh viễn khỏi hệ thống.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={isDeleting}>
+                Hủy bỏ
+              </AlertDialogCancel>
+              <AlertDialogAction
+                onClick={(e) => {
+                  e.preventDefault();
+                  handleDeleteConfirm();
+                }}
+                disabled={isDeleting}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {isDeleting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Đang xóa...
+                  </>
+                ) : (
+                  "Xóa tin tuyển dụng"
+                )}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

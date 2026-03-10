@@ -9,7 +9,6 @@ import { authService } from "@/services/authService";
 import { notifyWarning, notifyError, notifySuccess } from "@/utils/notification";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
 
 interface SignupData {
   fullName: string;
@@ -37,7 +36,6 @@ const countryCodes = [
 
 const Signup = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const turnstileRef = useRef<HTMLDivElement>(null);
   const [formData, setFormData] = useState<SignupData>({
     fullName: "",
@@ -269,7 +267,7 @@ const Signup = () => {
       // Get Turnstile token
       const captchaToken = authService.getTurnstileToken();
       if (!captchaToken) {
-        notifyWarning("Please complete the security verification");
+        notifyWarning("Vui lòng hoàn thành bước xác minh bảo mật");
         setLoading(false);
         return;
       }
@@ -299,18 +297,12 @@ const Signup = () => {
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
         
-        // Show toast with all errors
-        const errorMessages = Object.values(newErrors);
-        toast({
-          title: "Validation Errors",
-          description: (
-            <ul className="list-disc list-inside space-y-1 text-sm">
-              {errorMessages.map((error, index) => (
-                <li key={index}>{error}</li>
-              ))}
-            </ul>
-          ),
-          variant: "destructive",
+        // Show first error in notification
+        const firstError = Object.values(newErrors)[0];
+        notifyWarning({
+          title: "Thông tin chưa đúng",
+          description: firstError,
+          duration: 5
         });
         
         authService.resetTurnstile();
@@ -319,7 +311,7 @@ const Signup = () => {
       }
 
       // All validations passed
-      notifySuccess("Validation successful! Proceeding to role selection...");
+      notifySuccess("Đăng ký thành công! Chúc mừng bạn đã tham gia!");
 
       // Store signup data in sessionStorage for role selection page
       sessionStorage.setItem("signupData", JSON.stringify(formData));
