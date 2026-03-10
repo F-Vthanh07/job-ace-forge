@@ -8,46 +8,146 @@ import {
   Briefcase, 
   DollarSign,
   TrendingUp,
-  Activity
+  Activity,
+  CreditCard,
+  CheckCircle,
+  XCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useToast } from "@/hooks/use-toast";
+
+interface DashboardData {
+  totalRevenue: number;
+  totalTransactions: number;
+  totalSubscribedUsers: number;
+  totalSubscriptionsSold: number;
+  thisMonthRevenue: number;
+  thisMonthTransactions: number;
+  lastMonthRevenue: number;
+  growthPercentage: number;
+  newUsersThisMonth: number;
+}
+
+interface SubscriptionPlan {
+  planId: string;
+  planName: string;
+  planPrice: number;
+  totalSold: number;
+  totalRevenue: number;
+  percentageOfTotal: number;
+  activeSubscriptions: number;
+  expiredSubscriptions: number;
+}
 
 const AdminDashboard = () => {
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/overview');
+        const result = await response.json();
+        
+        if (result.success) {
+          setDashboardData(result.data);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load dashboard data",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch dashboard data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to connect to the server",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const fetchSubscriptionPlans = async () => {
+      try {
+        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/subscription-sales');
+        const result = await response.json();
+        
+        if (result.success) {
+          setSubscriptionPlans(result.data);
+        } else {
+          toast({
+            title: "Error",
+            description: "Failed to load subscription plans",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch subscription plans:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load subscription plans",
+          variant: "destructive"
+        });
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    fetchDashboardData();
+    fetchSubscriptionPlans();
+  }, [toast]);
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: 'VND',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(amount);
+  };
+
   const stats = [
     {
-      title: "Total Users",
-      value: "12,543",
+      title: "New Users This Month",
+      value: loading ? "..." : dashboardData?.newUsersThisMonth.toString() || "0",
       icon: Users,
       trend: {
-        value: 12.5,
-        isPositive: true
+        value: loading ? 0 : dashboardData?.growthPercentage || 0,
+        isPositive: (dashboardData?.growthPercentage || 0) >= 0
       }
     },
     {
-      title: "Active Businesses",
-      value: "248",
+      title: "Subscribed Users",
+      value: loading ? "..." : dashboardData?.totalSubscribedUsers.toString() || "0",
       icon: Building2,
       trend: {
-        value: 8.2,
-        isPositive: true
+        value: loading ? 0 : dashboardData?.growthPercentage || 0,
+        isPositive: (dashboardData?.growthPercentage || 0) >= 0
       }
     },
     {
-      title: "Job Postings",
-      value: "1,856",
+      title: "Subscriptions Sold",
+      value: loading ? "..." : dashboardData?.totalSubscriptionsSold.toString() || "0",
       icon: Briefcase,
       trend: {
-        value: 15.3,
-        isPositive: true
+        value: loading ? 0 : dashboardData?.growthPercentage || 0,
+        isPositive: (dashboardData?.growthPercentage || 0) >= 0
       }
     },
     {
       title: "Revenue (Monthly)",
-      value: "$48,250",
+      value: loading ? "..." : formatCurrency(dashboardData?.thisMonthRevenue || 0),
       icon: DollarSign,
       trend: {
-        value: 23.1,
-        isPositive: true
+        value: loading ? 0 : dashboardData?.growthPercentage || 0,
+        isPositive: (dashboardData?.growthPercentage || 0) >= 0
       }
     }
   ];
@@ -71,8 +171,8 @@ const AdminDashboard = () => {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          {stats.map((stat, index) => (
-            <StatCard key={index} {...stat} />
+          {stats.map((stat) => (
+            <StatCard key={stat.title} {...stat} />
           ))}
         </div>
 
@@ -133,8 +233,8 @@ const AdminDashboard = () => {
               <Button variant="ghost" size="sm">View All</Button>
             </div>
             <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
-                <div key={index} className="flex items-start gap-3 pb-4 border-b border-border last:border-0">
+              {recentActivities.map((activity) => (
+                <div key={`${activity.user}-${activity.time}`} className="flex items-start gap-3 pb-4 border-b border-border last:border-0">
                   <div className="w-2 h-2 rounded-full bg-primary mt-2" />
                   <div className="flex-1">
                     <p className="font-medium">{activity.user}</p>
@@ -153,24 +253,104 @@ const AdminDashboard = () => {
             </div>
             <div className="space-y-4">
               <div className="flex justify-between items-center p-4 rounded-lg bg-secondary/50">
-                <span className="font-medium">Premium Users</span>
-                <span className="text-2xl font-bold text-gradient">1,245</span>
+                <span className="font-medium">Total Revenue</span>
+                <span className="text-2xl font-bold text-gradient">
+                  {loading ? "..." : formatCurrency(dashboardData?.totalRevenue || 0)}
+                </span>
               </div>
               <div className="flex justify-between items-center p-4 rounded-lg bg-secondary/50">
-                <span className="font-medium">Active Jobs</span>
-                <span className="text-2xl font-bold text-gradient">856</span>
+                <span className="font-medium">This Month Revenue</span>
+                <span className="text-2xl font-bold text-gradient">
+                  {loading ? "..." : formatCurrency(dashboardData?.thisMonthRevenue || 0)}
+                </span>
               </div>
               <div className="flex justify-between items-center p-4 rounded-lg bg-secondary/50">
-                <span className="font-medium">Applications (Today)</span>
-                <span className="text-2xl font-bold text-gradient">324</span>
+                <span className="font-medium">Total Transactions</span>
+                <span className="text-2xl font-bold text-gradient">
+                  {loading ? "..." : dashboardData?.totalTransactions || 0}
+                </span>
               </div>
               <div className="flex justify-between items-center p-4 rounded-lg bg-secondary/50">
-                <span className="font-medium">Avg. Response Time</span>
-                <span className="text-2xl font-bold text-gradient">2.4h</span>
+                <span className="font-medium">This Month Transactions</span>
+                <span className="text-2xl font-bold text-gradient">
+                  {loading ? "..." : dashboardData?.thisMonthTransactions || 0}
+                </span>
               </div>
             </div>
           </Card>
         </div>
+
+        {/* Subscription Plans Section */}
+        <Card className="p-6 mt-6">
+          <div className="flex items-center gap-3 mb-6">
+            <CreditCard className="h-6 w-6 text-primary" />
+            <h2 className="text-2xl font-bold">Subscription Plans Performance</h2>
+          </div>
+          
+          {loadingPlans && (
+            <div className="text-center py-8 text-muted-foreground">Loading subscription plans...</div>
+          )}
+          {!loadingPlans && subscriptionPlans.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">No subscription plans found</div>
+          )}
+          {!loadingPlans && subscriptionPlans.length > 0 && (
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-6">
+              {subscriptionPlans.map((plan) => (
+                <Card key={plan.planId} className="p-6 border-2 hover:border-primary/50 transition-colors">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-2xl font-bold text-gradient">{plan.planName}</h3>
+                      <span className="text-xl font-semibold text-primary">
+                        {formatCurrency(plan.planPrice)}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-secondary/30">
+                        <span className="text-sm font-medium text-muted-foreground">Total Sold</span>
+                        <span className="text-lg font-bold">{plan.totalSold}</span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-secondary/30">
+                        <span className="text-sm font-medium text-muted-foreground">Total Revenue</span>
+                        <span className="text-lg font-bold text-green-600 dark:text-green-400">
+                          {formatCurrency(plan.totalRevenue)}
+                        </span>
+                      </div>
+                      
+                      <div className="flex justify-between items-center p-3 rounded-lg bg-secondary/30">
+                        <span className="text-sm font-medium text-muted-foreground">% of Total</span>
+                        <span className="text-lg font-bold">{plan.percentageOfTotal.toFixed(1)}%</span>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-2 pt-2">
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-green-500/10 border border-green-500/20">
+                          <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400" />
+                          <div>
+                            <div className="text-xs text-muted-foreground">Active</div>
+                            <div className="text-lg font-bold text-green-600 dark:text-green-400">
+                              {plan.activeSubscriptions}
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex items-center gap-2 p-3 rounded-lg bg-red-500/10 border border-red-500/20">
+                          <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />
+                          <div>
+                            <div className="text-xs text-muted-foreground">Expired</div>
+                            <div className="text-lg font-bold text-red-600 dark:text-red-400">
+                              {plan.expiredSubscriptions}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Card>
 
         <Card className="p-6 mt-6">
           <Button className="gradient-primary shadow-glow w-full" size="lg" asChild>
