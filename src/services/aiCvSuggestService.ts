@@ -114,6 +114,11 @@ class AICVSuggestService {
         if (response.status === 403) {
           console.error("🚫 403 Forbidden - Premium required or expired");
           console.error("   Full Response:", errorData);
+          return {
+            success: false,
+            message: "Premium subscription required",
+            statusCode: 403,
+          };
         }
         
         return {
