@@ -157,11 +157,8 @@ const Welcome = () => {
   };
 
   const getPlanLink = (plan: SubscriptionPlan) => {
-    if (plan.price === 0) return "/signup";
-    const role = (plan.targetRole || "").trim().toLowerCase();
-    if (role === "candidate") return "/premium";
-    if (role === "business") return "/recruiter-premium";
-    return "/premium";
+    // All plans redirect to signup/register page
+    return "/signup";
   };
 
   const getPlanCta = (plan: SubscriptionPlan) => {
@@ -172,8 +169,8 @@ const Welcome = () => {
   // Fallback pricing data
   const pricing = [
     { id: "free", name: "Free", price: "0đ", benefits: dict.pricing.benefits.free, cta: tr("pricing.cta.free"), link: "/signup", highlight: false },
-    { id: "premium", name: "Premium", price: "699k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/premium" },
-    { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/enterprise-signup", highlight: false },
+    { id: "premium", name: "Premium", price: "699k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/signup" },
+    { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/signup", highlight: false },
   ] as const;
 
   // Slider data and autoplay state
