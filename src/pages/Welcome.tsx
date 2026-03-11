@@ -5,11 +5,13 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { type CarouselApi, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, Moon, Sun, Globe, CheckCircle, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon } from "lucide-react";
+import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, Moon, Sun, Globe, CheckCircle, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon, Loader2 } from "lucide-react";
 import { useTheme } from "@/contexts/ThemeContext";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { translations } from "@/locales/translations";
 import { useEffect, useState } from "react";
+import { companyService, CompanyData } from "@/services/companyService";
+import { subscriptionService, SubscriptionPlan } from "@/services/subscriptionService";
 
 const Welcome = () => {
   const { theme, toggleTheme } = useTheme();
@@ -79,17 +81,56 @@ const Welcome = () => {
     "Healthcare",
   ] as const;
 
-  const companies = [
-    { id: "c1", name: "FPT Telecom", city: "Hồ Chí Minh", logo: "/logos/FPT_logo_2010.svg.png", role: "Fullstack Developer", salary: "Thỏa thuận" },
-    { id: "c2", name: "Athena Hub", city: "Hồ Chí Minh", logo: "/logos/Athena-Hub.png", role: "Senior Frontend Developer", salary: "30 - 45 triệu" },
-    { id: "c3", name: "Persol Career", city: "Hồ Chí Minh", logo: "/logos/Persol-Career.png", role: "Middle Back End Developer (Java)", salary: "750 - 1,900 USD" },
-    { id: "c4", name: "ADFLY Việt Nam", city: "Hồ Chí Minh", logo: "/logos/ADFLY.png", role: "Nhân Viên Kinh Doanh / Sales", salary: "Thỏa thuận" },
-    { id: "c5", name: "EDUVATOR", city: "Hà Nội & 2 nơi khác", logo: "/logos/EDUVATOR.png", role: "Tư Vấn Khóa Học", salary: "15 - 20 triệu" },
-    { id: "c6", name: "TGP Corp", city: "Hồ Chí Minh", logo: "/logos/TGP.png", role: "Nhân Viên Văn Phòng", salary: "7.1 - 8.5 triệu" },
-    { id: "c7", name: "Retail FTB", city: "Hồ Chí Minh", logo: "/logos/FTB.png", role: "Bán Hàng Ngành Trang Sức (Nữ)", salary: "12 - 18 triệu" },
-    { id: "c8", name: "CMC Corp", city: "Hồ Chí Minh", logo: "/logos/CMC-Corp-logo.png", role: "Kỹ Sư Cơ Khí / Thiết Kế Cơ Khí", salary: "12 - 17 triệu" },
-    { id: "c9", name: "Đảo Hải Sản", city: "Hồ Chí Minh", logo: "/logos/DAOHAISAN.png", role: "Kế Toán Trưởng (FMCG / F&B)", salary: "25 - 35 triệu" },
-  ] as const;
+  const [companies, setCompanies] = useState<CompanyData[]>([]);
+  const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [loadingPlans, setLoadingPlans] = useState(true);
+
+  // Fetch verified companies from API
+  useEffect(() => {
+    const fetchVerifiedCompanies = async () => {
+      try {
+        setLoadingCompanies(true);
+        const response = await companyService.getAllCompanies();
+        if (response.success && response.data) {
+          // Filter only verified companies and limit to 9 for display
+          const verifiedCompanies = response.data
+            .filter((company: CompanyData) => company.verificationStatus === "Verified")
+            .slice(0, 9);
+          setCompanies(verifiedCompanies);
+        }
+      } catch (error) {
+        console.error("Error fetching companies:", error);
+      } finally {
+        setLoadingCompanies(false);
+      }
+    };
+
+    fetchVerifiedCompanies();
+  }, []);
+
+  // Fetch subscription plans from API
+  useEffect(() => {
+    const fetchSubscriptionPlans = async () => {
+      try {
+        setLoadingPlans(true);
+        const response = await subscriptionService.getAllPlans();
+        if (response.success && response.data) {
+          // Filter for active plans only and limit to 3 plans
+          const activePlans = response.data
+            .filter(plan => plan.status === "Active")
+            .slice(0, 3);
+          setSubscriptionPlans(activePlans);
+        }
+      } catch (error) {
+        console.error("Error fetching subscription plans:", error);
+      } finally {
+        setLoadingPlans(false);
+      }
+    };
+
+    fetchSubscriptionPlans();
+  }, []);
 
   const features = [
     { id: "feature-cv", icon: Target, title: tr("welcome.cvBuilder"), desc: tr("welcome.cvBuilderDesc"), to: "/cv-builder", cta: tr("onboarding.cvCta") },
@@ -97,10 +138,39 @@ const Welcome = () => {
     { id: "feature-jobs", icon: TrendingUp, title: tr("welcome.jobMatch"), desc: tr("welcome.jobMatchDesc"), to: "/jobs", cta: tr("onboarding.jobsCta") },
   ] as const;
 
+  // Helper functions for pricing
+  const formatPrice = (price: number, durationInDays: number) => {
+    if (price === 0) return "Free";
+    
+    const formattedPrice = price >= 1000 
+      ? `${(price / 1000).toFixed(0)}K` 
+      : `${Math.round(price)}K`;
+    
+    if (durationInDays === 30) return `${formattedPrice}/month`;
+    if (durationInDays === 365) return `${formattedPrice}/year`;
+    return formattedPrice;
+  };
+
+  const parseFeatures = (features: string): string[] => {
+    if (!features) return [];
+    return features.split(',').map(f => f.trim()).filter(f => f.length > 0);
+  };
+
+  const getPlanLink = (plan: SubscriptionPlan) => {
+    // All plans redirect to signup/register page
+    return "/signup";
+  };
+
+  const getPlanCta = (plan: SubscriptionPlan) => {
+    if (plan.price === 0) return tr("pricing.cta.free");
+    return tr("pricing.cta.premium");
+  };
+
+  // Fallback pricing data
   const pricing = [
     { id: "free", name: "Free", price: "0đ", benefits: dict.pricing.benefits.free, cta: tr("pricing.cta.free"), link: "/signup", highlight: false },
-    { id: "premium", name: "Premium", price: "699k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/premium" },
-    { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/enterprise-signup", highlight: false },
+    { id: "premium", name: "Premium", price: "699k/month", highlight: true, benefits: dict.pricing.benefits.premium, cta: tr("pricing.cta.premium"), link: "/signup" },
+    { id: "enterprise", name: "Enterprise", price: "Contact", benefits: dict.pricing.benefits.enterprise, cta: tr("pricing.cta.enterprise"), link: "/signup", highlight: false },
   ] as const;
 
   // Slider data and autoplay state
@@ -375,32 +445,44 @@ const Welcome = () => {
           <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("partners.title")}</h2>
           <p className="text-muted-foreground">{tr("partners.subtitle")}</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
-          {companies.map((co, idx) => (
-            <Card key={co.id} className="p-4 hover:shadow-lg transition-all rounded-xl border border-border/60 bg-card">
-              <div className="flex items-start gap-3">
-                <div className={`h-12 w-12 rounded-lg bg-gradient-to-br ${brandGradients[idx % brandGradients.length]} ring-1 ring-border overflow-hidden flex items-center justify-center` }>
-                  {co.logo ? (
-                    <img src={co.logo} alt={`${co.name} logo`} className="h-full w-full object-contain p-1" loading="lazy" />
-                  ) : (
-                    <span className="font-bold text-foreground/90">{getInitials(co.name)}</span>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-semibold truncate">{co.role}</h3>
-                  <div className="text-xs text-muted-foreground truncate">{co.name}</div>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    <Badge variant="secondary">{co.salary}</Badge>
-                    <Badge variant="outline">{co.city}</Badge>
+        {loadingCompanies ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : companies.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
+            {companies.map((co, idx) => (
+              <Card key={co.id} className="p-4 hover:shadow-lg transition-all rounded-xl border border-border/60 bg-card">
+                <div className="flex items-start gap-3">
+                  <div className={`h-12 w-12 rounded-lg bg-gradient-to-br ${brandGradients[idx % brandGradients.length]} ring-1 ring-border overflow-hidden flex items-center justify-center` }>
+                    {co.logoUrl ? (
+                      <img src={co.logoUrl} alt={`${co.name} logo`} className="h-full w-full object-contain p-1" loading="lazy" />
+                    ) : (
+                      <span className="font-bold text-foreground/90">{getInitials(co.name)}</span>
+                    )}
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold truncate">{co.name}</h3>
+                    <div className="text-xs text-muted-foreground truncate">{co.industry}</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <Badge variant="secondary">{co.size} employees</Badge>
+                      {co.address?.cityName && (
+                        <Badge variant="outline">{co.address.cityName}</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <Button size="sm" variant="outline" asChild>
+                    <Link to="/jobs">{tr("common.apply")}</Link>
+                  </Button>
                 </div>
-                <Button size="sm" variant="outline" asChild>
-                  <Link to="/jobs">{tr("common.apply")}</Link>
-                </Button>
-              </div>
-            </Card>
-          ))}
-        </div>
+              </Card>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No verified companies available at the moment.</p>
+          </div>
+        )}
         </div>
       </section>
 
@@ -445,27 +527,65 @@ const Welcome = () => {
           <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("pricing.sectionTitle")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">{tr("pricing.sectionSubtitle")}</p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {pricing.map((p) => (
-            <Card key={p.id} className={`p-6 ${p.highlight ? "border-primary shadow-glow" : ""}`}>
-              <div className="flex items-baseline justify-between mb-4">
-                <h3 className="text-xl font-bold">{p.name}</h3>
-                {p.highlight && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
-              </div>
-              <div className="text-3xl font-bold mb-4">{p.price}</div>
-              <ul className="space-y-2 mb-6">
-                {p.benefits.map((b) => (
-                  <li key={`${p.id}-${b}`} className="flex items-center gap-2 text-muted-foreground">
-                    <CheckCircle className="h-4 w-4 text-success" /> {b}
-                  </li>
-                ))}
-              </ul>
-              <Button asChild className={p.highlight ? "gradient-primary" : ""} variant={p.highlight ? "default" : "outline"}>
-                <Link to={p.link}>{p.cta}</Link>
-              </Button>
-            </Card>
-          ))}
-        </div>
+        {loadingPlans ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          </div>
+        ) : subscriptionPlans.length > 0 ? (
+          <div className={`grid gap-6 max-w-5xl mx-auto ${subscriptionPlans.length === 2 ? 'md:grid-cols-2' : 'md:grid-cols-3'}`}>
+            {subscriptionPlans.map((plan, index) => {
+              const features = parseFeatures(plan.features);
+              const isPremium = plan.price > 0;
+              const isHighlighted = isPremium && index === 1; // Highlight middle plan if it's premium
+              
+              return (
+                <Card key={plan.id} className={`p-6 ${isHighlighted ? "border-primary shadow-glow" : ""}`}>
+                  <div className="flex items-baseline justify-between mb-4">
+                    <h3 className="text-xl font-bold">{plan.name}</h3>
+                    {isHighlighted && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
+                  </div>
+                  <div className="text-3xl font-bold mb-4">{formatPrice(plan.price, plan.durationInDays)}</div>
+                  <ul className="space-y-2 mb-6">
+                    {features.map((feature, idx) => (
+                      <li key={`${plan.id}-${idx}`} className="flex items-center gap-2 text-muted-foreground">
+                        <CheckCircle className="h-4 w-4 text-success" /> {feature}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button 
+                    asChild 
+                    className={isHighlighted ? "gradient-primary" : ""} 
+                    variant={isHighlighted ? "default" : "outline"}
+                  >
+                    <Link to={getPlanLink(plan)}>{getPlanCta(plan)}</Link>
+                  </Button>
+                </Card>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+            {pricing.map((p) => (
+              <Card key={p.id} className={`p-6 ${p.highlight ? "border-primary shadow-glow" : ""}`}>
+                <div className="flex items-baseline justify-between mb-4">
+                  <h3 className="text-xl font-bold">{p.name}</h3>
+                  {p.highlight && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
+                </div>
+                <div className="text-3xl font-bold mb-4">{p.price}</div>
+                <ul className="space-y-2 mb-6">
+                  {p.benefits.map((b) => (
+                    <li key={`${p.id}-${b}`} className="flex items-center gap-2 text-muted-foreground">
+                      <CheckCircle className="h-4 w-4 text-success" /> {b}
+                    </li>
+                  ))}
+                </ul>
+                <Button asChild className={p.highlight ? "gradient-primary" : ""} variant={p.highlight ? "default" : "outline"}>
+                  <Link to={p.link}>{p.cta}</Link>
+                </Button>
+              </Card>
+            ))}
+          </div>
+        )}
         </div>
       </section>
 
