@@ -44,6 +44,25 @@ export interface GetAllPlansResponse {
   data?: SubscriptionPlan[];
 }
 
+export interface UserSubscriptionPlan {
+  userId: string;
+  planId: string;
+  status: string;
+  subscriptionPlansName: string;
+  subscriptionPlansTargetRole: string;
+  subscriptionPlansPrice: number;
+  subscriptionPlansDurationInDays: number;
+  subscriptionPlansFeatures: string;
+}
+
+export interface GetUserSubscriptionResponse {
+  success: boolean;
+  message?: string;
+  data?: UserSubscriptionPlan | null;
+}
+
+const USER_SUBSCRIPTION_STORAGE_KEY = "userSubscription";
+
 class SubscriptionService {
   /**
    * Get all subscription plans
@@ -87,6 +106,77 @@ class SubscriptionService {
         success: false,
         message: error instanceof Error ? error.message : "Network error. Please try again.",
       };
+    }
+  }
+
+  /**
+   * Get current logged-in user's subscription plan
+   */
+  async getCurrentUserSubscription(): Promise<GetUserSubscriptionResponse> {
+    try {
+      const token = localStorage.getItem("authToken");
+
+      if (!token) {
+        return {
+          success: false,
+          message: "Authentication required. Please login again.",
+          data: null,
+        };
+      }
+
+      const response = await fetch(`${API_BASE_URL}/SubscriptionPlan/Get_Subcription_Plan_By_User`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("❌ Failed to fetch user subscription:", errorText);
+        return {
+          success: false,
+          message: `Failed to fetch user subscription: ${response.status}`,
+          data: null,
+        };
+      }
+
+      const result = (await response.json()) as UserSubscriptionPlan[];
+      const currentSubscription = Array.isArray(result) && result.length > 0 ? result[0] : null;
+
+      return {
+        success: true,
+        message: "User subscription fetched successfully",
+        data: currentSubscription,
+      };
+    } catch (error) {
+      console.error("❌ Error fetching user subscription:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Network error. Please try again.",
+        data: null,
+      };
+    }
+  }
+
+  setStoredCurrentSubscription(subscription: UserSubscriptionPlan | null): void {
+    if (!subscription) {
+      localStorage.removeItem(USER_SUBSCRIPTION_STORAGE_KEY);
+      return;
+    }
+
+    localStorage.setItem(USER_SUBSCRIPTION_STORAGE_KEY, JSON.stringify(subscription));
+  }
+
+  getStoredCurrentSubscription(): UserSubscriptionPlan | null {
+    const subscriptionRaw = localStorage.getItem(USER_SUBSCRIPTION_STORAGE_KEY);
+    if (!subscriptionRaw) return null;
+
+    try {
+      return JSON.parse(subscriptionRaw) as UserSubscriptionPlan;
+    } catch {
+      return null;
     }
   }
 
