@@ -95,7 +95,7 @@ const Home = () => {
           const verifiedCompanies = response.data.filter(
             (company: CompanyData) => company.verificationStatus === "Verified"
           );
-          setCompanies(verifiedCompanies);
+          setCompanies(verifiedCompanies.slice(0, 12));
         }
       } catch (error) {
         console.error("Error fetching companies:", error);
@@ -419,7 +419,7 @@ const Home = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : companies.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
             {companies.map((co, idx) => (
               <Card key={co.id} className="p-4 hover:shadow-lg transition-all rounded-xl border border-border/60 bg-card">
                 <div className="flex items-start gap-3">
