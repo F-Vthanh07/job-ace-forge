@@ -4,6 +4,7 @@
  */
 
 import { API_CONFIG } from "../config/api";
+import { subscriptionService } from "./subscriptionService";
 
 const API_BASE_URL = API_CONFIG.BASE_URL;
 
@@ -362,6 +363,15 @@ class AuthService {
         }
       }
 
+      // Fetch current subscription for logged-in user
+      const subscriptionResponse = await subscriptionService.getCurrentUserSubscription();
+      if (subscriptionResponse.success) {
+        subscriptionService.setStoredCurrentSubscription(subscriptionResponse.data || null);
+      } else {
+        // Clear stale subscription if API fails for this session
+        subscriptionService.setStoredCurrentSubscription(null);
+      }
+
       return {
         success: true,
         message: "Đăng nhập thành công.",
@@ -427,6 +437,7 @@ class AuthService {
     localStorage.removeItem("userData"); // Remove old key for backwards compatibility
     localStorage.removeItem("companyFormData"); // Clear company form data
     localStorage.removeItem("recruiterCompany"); // Clear recruiter company data
+    subscriptionService.setStoredCurrentSubscription(null); // Clear user subscription data
     console.log("✅ User logged out, all data cleared from localStorage");
     // Trigger storage event for other components
     window.dispatchEvent(new Event('storage'));

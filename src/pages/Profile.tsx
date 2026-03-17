@@ -2,17 +2,20 @@ import { useState, useEffect } from "react";
 import { Navbar } from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, ArrowRight } from "lucide-react";
+import { User, Mail, Phone, MapPin, Briefcase, GraduationCap, Calendar, FileText, ArrowRight, Crown } from "lucide-react";
 import { authService, UserData } from "@/services/authService";
+import { subscriptionService, UserSubscriptionPlan } from "@/services/subscriptionService";
 import { Link } from "react-router-dom";
 
 const Profile = () => {
   const [user, setUser] = useState<UserData | null>(null);
+  const [subscription, setSubscription] = useState<UserSubscriptionPlan | null>(null);
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -33,7 +36,25 @@ const Profile = () => {
         gender: userData.gender || "",
       });
     }
+
+    const storedSubscription = subscriptionService.getStoredCurrentSubscription();
+    setSubscription(storedSubscription);
+
+    const fetchSubscription = async () => {
+      if (!authService.getToken()) return;
+
+      const response = await subscriptionService.getCurrentUserSubscription();
+      if (response.success) {
+        const currentSubscription = response.data || null;
+        setSubscription(currentSubscription);
+        subscriptionService.setStoredCurrentSubscription(currentSubscription);
+      }
+    };
+
+    fetchSubscription();
   }, []);
+
+  const isSubscriptionActive = (subscription?.status || "").toLowerCase() === "active";
 
   // Get user initials for avatar
   const getUserInitials = () => {
@@ -71,8 +92,40 @@ const Profile = () => {
                 <h1 className="text-3xl font-bold mb-2">{user?.fullName || "User"}</h1>
                 <p className="text-muted-foreground mb-1">{user?.email}</p>
                 <p className="text-sm text-primary capitalize mb-3">{user?.role || "Candidate"}</p>
+                {subscription && (
+                  <div className="mb-3 flex items-center gap-2 flex-wrap">
+                    <Badge variant={isSubscriptionActive ? "default" : "secondary"}>
+                      <Crown className="h-3 w-3 mr-1" />
+                      {subscription.subscriptionPlansName} Plan
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">Status: {subscription.status}</span>
+                  </div>
+                )}
                 <Button className="gradient-primary">Edit Profile Photo</Button>
               </div>
+            </div>
+          </Card>
+
+          <Card className="p-6 mb-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div>
+                <h2 className="text-xl font-semibold mb-1">Subscription</h2>
+                {subscription ? (
+                  <>
+                    <p className="text-muted-foreground mb-2">
+                      You are using <span className="font-medium text-foreground">{subscription.subscriptionPlansName}</span> plan for {subscription.subscriptionPlansTargetRole}.
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {subscription.subscriptionPlansFeatures}
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground">You have not subscribed to a paid plan yet.</p>
+                )}
+              </div>
+              <Button variant="outline" asChild>
+                <Link to="/premium">View Subscription Plans</Link>
+              </Button>
             </div>
           </Card>
 

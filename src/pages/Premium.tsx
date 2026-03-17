@@ -2,15 +2,16 @@ import { Navbar } from "@/components/Navbar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Check, Sparkles, Zap, Loader2 } from "lucide-react";
+import { Check, Sparkles, Zap, Loader2, Crown } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { subscriptionService, SubscriptionPlan } from "@/services/subscriptionService";
+import { subscriptionService, SubscriptionPlan, UserSubscriptionPlan } from "@/services/subscriptionService";
 import { notifyError } from "@/utils/notification";
 
 const Premium = () => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
+  const [currentSubscription, setCurrentSubscription] = useState<UserSubscriptionPlan | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,6 +22,7 @@ const Premium = () => {
     try {
       setLoading(true);
       const response = await subscriptionService.getAllPlans();
+      const currentSubscriptionResponse = await subscriptionService.getCurrentUserSubscription();
       
       if (response.success && response.data) {
         // Filter for candidate plans only (active status)
@@ -35,6 +37,15 @@ const Premium = () => {
           title: "Error",
           description: response.message || "Failed to fetch subscription plans"
         });
+      }
+
+      if (currentSubscriptionResponse.success) {
+        const subscription = currentSubscriptionResponse.data || null;
+        setCurrentSubscription(subscription);
+        subscriptionService.setStoredCurrentSubscription(subscription);
+      } else {
+        const storedSubscription = subscriptionService.getStoredCurrentSubscription();
+        setCurrentSubscription(storedSubscription);
       }
     } catch (error) {
       console.error("Error fetching plans:", error);
@@ -103,18 +114,44 @@ const Premium = () => {
             </p>
           </div>
 
+          {currentSubscription && (
+            <Card className="p-5 mb-8 max-w-4xl mx-auto border-primary/40 bg-primary/5">
+              <div className="flex items-center justify-between gap-4 flex-wrap">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <Crown className="h-4 w-4 text-primary" />
+                    <h2 className="font-semibold">Current Subscription</h2>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    You are on <span className="font-medium text-foreground">{currentSubscription.subscriptionPlansName}</span> plan ({currentSubscription.status}).
+                  </p>
+                </div>
+                <Badge variant="default">{currentSubscription.subscriptionPlansTargetRole}</Badge>
+              </div>
+            </Card>
+          )}
+
           <div className={`grid gap-8 max-w-4xl mx-auto ${getGridColumns()}`}>
             {plans.map((plan, index) => {
               const isFree = plan.price === 0;
               const isPremium = plan.price > 0;
               const isPopular = isPremium && index === 1; // Second non-free plan is popular
               const features = parseFeatures(plan.features);
+              const isCurrentPlan =
+                currentSubscription &&
+                currentSubscription.planId === plan.id &&
+                (currentSubscription.status || "").toLowerCase() === "active";
 
               return (
                 <Card 
                   key={plan.id} 
-                  className={`p-8 ${isPremium ? 'border-primary shadow-glow' : ''} relative overflow-hidden`}
+                  className={`p-8 ${isPremium ? 'border-primary shadow-glow' : ''} ${isCurrentPlan ? 'ring-2 ring-primary' : ''} relative overflow-hidden`}
                 >
+                  {isCurrentPlan && (
+                    <div className="absolute top-4 left-4">
+                      <Badge variant="default">Current Plan</Badge>
+                    </div>
+                  )}
                   {isPopular && (
                     <div className="absolute top-4 right-4">
                       <Badge className="gradient-primary text-white">
@@ -147,6 +184,10 @@ const Premium = () => {
                     variant={isFree ? "outline" : "default"}
                     className={`w-full mb-6 ${isPremium ? 'gradient-primary shadow-glow' : ''}`}
                     onClick={() => {
+                      if (isCurrentPlan) {
+                        return;
+                      }
+
                       if (isPremium) {
                         navigate("/payment-detail", {
                           state: {
@@ -161,9 +202,9 @@ const Premium = () => {
                         });
                       }
                     }}
-                    disabled={isFree}
+                    disabled={isFree || isCurrentPlan}
                   >
-                    {isFree ? "Current Plan" : `Upgrade to ${plan.name}`}
+                    {isCurrentPlan ? "Current Plan" : isFree ? "Current Plan" : `Upgrade to ${plan.name}`}
                   </Button>
 
                   <div className="space-y-3">

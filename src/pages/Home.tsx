@@ -4,13 +4,13 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { type CarouselApi, Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
-import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, type LucideIcon, Loader2 } from "lucide-react";
+import { Sparkles, TrendingUp, Target, Zap, Search, MapPin, List, ChevronRight, UserPlus, FileText, Bot, Briefcase, ArrowRight, Crown, type LucideIcon, Loader2 } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useEffect, useState } from "react";
 import { translations } from "@/locales/translations";
 import { Navbar } from "@/components/Navbar";
 import { companyService, CompanyData } from "@/services/companyService";
-import { subscriptionService, SubscriptionPlan } from "@/services/subscriptionService";
+import { subscriptionService, SubscriptionPlan, UserSubscriptionPlan } from "@/services/subscriptionService";
 
 const Home = () => {
   const { t: tr, language } = useLanguage();
@@ -81,6 +81,7 @@ const Home = () => {
   const [companies, setCompanies] = useState<CompanyData[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
   const [subscriptionPlans, setSubscriptionPlans] = useState<SubscriptionPlan[]>([]);
+  const [currentSubscription, setCurrentSubscription] = useState<UserSubscriptionPlan | null>(null);
   const [loadingPlans, setLoadingPlans] = useState(true);
 
   // Fetch verified companies from API
@@ -94,7 +95,7 @@ const Home = () => {
           const verifiedCompanies = response.data.filter(
             (company: CompanyData) => company.verificationStatus === "Verified"
           );
-          setCompanies(verifiedCompanies);
+          setCompanies(verifiedCompanies.slice(0, 12));
         }
       } catch (error) {
         console.error("Error fetching companies:", error);
@@ -111,7 +112,20 @@ const Home = () => {
     const fetchSubscriptionPlans = async () => {
       try {
         setLoadingPlans(true);
-        const response = await subscriptionService.getAllPlans();
+        const [plansResponse, currentSubscriptionResponse] = await Promise.all([
+          subscriptionService.getAllPlans(),
+          subscriptionService.getCurrentUserSubscription(),
+        ]);
+
+        if (currentSubscriptionResponse.success) {
+          const subscription = currentSubscriptionResponse.data || null;
+          setCurrentSubscription(subscription);
+          subscriptionService.setStoredCurrentSubscription(subscription);
+        } else {
+          setCurrentSubscription(subscriptionService.getStoredCurrentSubscription());
+        }
+
+        const response = plansResponse;
         if (response.success && response.data) {
           // Filter for active plans only and limit to 3 plans for home page
           const activePlans = response.data
@@ -405,7 +419,7 @@ const Home = () => {
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
         ) : companies.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 max-w-6xl mx-auto">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-7xl mx-auto">
             {companies.map((co, idx) => (
               <Card key={co.id} className="p-4 hover:shadow-lg transition-all rounded-xl border border-border/60 bg-card">
                 <div className="flex items-start gap-3">
@@ -482,6 +496,19 @@ const Home = () => {
           <h2 className="text-3xl md:text-4xl font-bold mb-3">{tr("pricing.sectionTitle")}</h2>
           <p className="text-muted-foreground max-w-2xl mx-auto">{tr("pricing.sectionSubtitle")}</p>
         </div>
+        {currentSubscription && (
+          <Card className="p-4 mb-6 max-w-5xl mx-auto border-primary/40 bg-primary/5">
+            <div className="flex items-center justify-between gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Crown className="h-4 w-4 text-primary" />
+                <p className="text-sm text-muted-foreground">
+                  Current subscription: <span className="font-medium text-foreground">{currentSubscription.subscriptionPlansName}</span> ({currentSubscription.status})
+                </p>
+              </div>
+              <Badge variant="default">{currentSubscription.subscriptionPlansTargetRole}</Badge>
+            </div>
+          </Card>
+        )}
         {loadingPlans ? (
           <div className="flex items-center justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -492,12 +519,19 @@ const Home = () => {
               const features = parseFeatures(plan.features);
               const isPremium = plan.price > 0;
               const isHighlighted = isPremium && index === 1; // Highlight middle plan if it's premium
+              const isCurrentPlan =
+                currentSubscription &&
+                currentSubscription.planId === plan.id &&
+                (currentSubscription.status || "").toLowerCase() === "active";
               
               return (
-                <Card key={plan.id} className={`p-6 ${isHighlighted ? "border-primary shadow-glow" : ""}`}>
+                <Card key={plan.id} className={`p-6 ${isHighlighted ? "border-primary shadow-glow" : ""} ${isCurrentPlan ? "ring-2 ring-primary" : ""}`}>
                   <div className="flex items-baseline justify-between mb-4">
                     <h3 className="text-xl font-bold">{plan.name}</h3>
-                    {isHighlighted && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
+                    <div className="flex items-center gap-2">
+                      {isCurrentPlan && <Badge variant="default">Current Plan</Badge>}
+                      {isHighlighted && <Badge className="gradient-primary text-white">{tr("pricing.popular")}</Badge>}
+                    </div>
                   </div>
                   <div className="text-3xl font-bold mb-4">{formatPrice(plan.price, plan.durationInDays)}</div>
                   <ul className="space-y-2 mb-6">
@@ -507,13 +541,19 @@ const Home = () => {
                       </li>
                     ))}
                   </ul>
-                  <Button 
-                    asChild 
-                    className={isHighlighted ? "gradient-primary" : ""} 
-                    variant={isHighlighted ? "default" : "outline"}
-                  >
-                    <Link to={getPlanLink(plan)}>{getPlanCta(plan)}</Link>
-                  </Button>
+                  {isCurrentPlan ? (
+                    <Button disabled className="w-full" variant="outline">
+                      Current Plan
+                    </Button>
+                  ) : (
+                    <Button
+                      asChild
+                      className={isHighlighted ? "gradient-primary" : ""}
+                      variant={isHighlighted ? "default" : "outline"}
+                    >
+                      <Link to={getPlanLink(plan)}>{getPlanCta(plan)}</Link>
+                    </Button>
+                  )}
                 </Card>
               );
             })}

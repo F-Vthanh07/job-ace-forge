@@ -526,12 +526,22 @@ const CVBuilder = () => {
           title: "AI Review Completed",
           description: `Your CV score: ${response.data.score}/100`,
         });
-      } else if (response.statusCode === 403 || response.message?.includes("Premium") || response.message === "You can not use this feature") {
-        // User doesn't have subscription or premium expired
-        console.log("⚠️ Premium required or expired - showing notification");
+      } else if (response.statusCode === 403) {
+        // User doesn't have subscription or premium expired (403 Forbidden)
+        console.log("⚠️ 403 Forbidden - Premium required or expired");
         console.log("⚠️ Error message:", response.message);
+        console.log("⚠️ Showing premium notification...");
         
-        notifyPremiumRequired(() => navigate("/premium"));
+        // Show premium upgrade notification with navigation to upgrade page
+        notifyPremiumRequired(() => {
+          console.log("📍 Navigate callback called - going to /premium");
+          try {
+            navigate("/premium");
+            console.log("✅ Navigation completed");
+          } catch (error) {
+            console.error("❌ Navigation failed:", error);
+          }
+        });
       } else {
         console.error("❌ AI Review failed with message:", response.message);
         notifyError(response.message || "Failed to get AI review");
