@@ -47,12 +47,12 @@ const Signup = () => {
   });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Partial<Record<keyof SignupData, string>>>({});
-  
+
   // Separate date fields
   const [birthDay, setBirthDay] = useState("");
   const [birthMonth, setBirthMonth] = useState("");
   const [birthYear, setBirthYear] = useState("");
-  
+
   // Phone number parts
   const [countryCode, setCountryCode] = useState("+84");
   const [phoneWithoutCode, setPhoneWithoutCode] = useState("");
@@ -217,7 +217,7 @@ const Signup = () => {
     const date = new Date(dob);
     const today = new Date();
     const age = today.getFullYear() - date.getFullYear();
-    
+
     if (isNaN(date.getTime())) {
       return "Invalid date format";
     }
@@ -274,7 +274,7 @@ const Signup = () => {
 
       // Validate all fields
       const newErrors: Partial<Record<keyof SignupData, string>> = {};
-      
+
       const fullNameError = validateFullName(formData.fullName);
       if (fullNameError) newErrors.fullName = fullNameError;
 
@@ -296,7 +296,7 @@ const Signup = () => {
       // If there are errors, show them
       if (Object.keys(newErrors).length > 0) {
         setErrors(newErrors);
-        
+
         // Show first error in notification
         const firstError = Object.values(newErrors)[0];
         notifyWarning({
@@ -304,7 +304,7 @@ const Signup = () => {
           description: firstError,
           duration: 5
         });
-        
+
         authService.resetTurnstile();
         setLoading(false);
         return;
@@ -316,7 +316,7 @@ const Signup = () => {
       // Store signup data in sessionStorage for role selection page
       sessionStorage.setItem("signupData", JSON.stringify(formData));
       sessionStorage.setItem("signupCaptchaToken", captchaToken);
-      
+
       // Navigate to role selection page
       navigate("/role-selection");
     } catch (error) {
@@ -524,15 +524,15 @@ const Signup = () => {
           </div>
 
           {/* Turnstile Widget */}
-          <div 
-            ref={turnstileRef} 
-            id="turnstile-signup-container" 
+          <div
+            ref={turnstileRef}
+            id="turnstile-signup-container"
             className="flex justify-center my-4"
           />
 
-          <Button 
-            type="submit" 
-            className="w-full gradient-primary shadow-glow" 
+          <Button
+            type="submit"
+            className="w-full gradient-primary shadow-glow"
             size="lg"
             disabled={loading}
           >

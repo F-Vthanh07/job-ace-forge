@@ -6,17 +6,107 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Video, Play } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+
+import { useToast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
+import { cvService } from "@/services/cvService";
 
 const InterviewSetup = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [gender, setGender] = useState("male");
   const [difficulty, setDifficulty] = useState("medium");
+  const [targetRole, setTargetRole] = useState("developer");
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const [candidateId, setCandidateId] = useState("");
+  const [profileId, setProfileId] = useState("");
+
   const { t } = useLanguage();
 
-  const handleStartInterview = () => {
-    navigate(`/interview-session?gender=${gender}&difficulty=${difficulty}`);
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const accountId = localStorage.getItem("accountId");
+      if (accountId) {
+        setCandidateId(accountId);
+      }
+
+      // Fetch CVs to get profileId
+      try {
+        const response = await cvService.getAllCVsByCandidate();
+        if (response.success && response.data && response.data.length > 0) {
+          const activeCV = response.data.find(cv => cv.isActive) || response.data[0];
+          if (activeCV && activeCV.id) {
+            setProfileId(activeCV.id);
+          }
+        }
+      } catch (e) {
+        console.error("Error fetching CVs:", e);
+      }
+    };
+    fetchUserData();
+  }, []);
+
+  const handleStartInterview = async () => {
+    try {
+      setIsLoading(true);
+      if (!candidateId || !profileId) {
+        toast({
+          title: "Thiếu thông tin",
+          description: "Vui lòng đăng nhập và tạo ít nhất 1 CV để có thể phỏng vấn Mock Interview.",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // Format difficulty to PascalCase for backend Enum compatibility
+      const formattedDifficulty = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+
+      const response = await fetch("https://aijobmatch.onrender.com/api/MockInterview/start-Interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          candidateId: candidateId,
+          candidateProfileId: profileId,
+          interviewDifficulty: formattedDifficulty,
+          customTargetJobTitle: targetRole
+        })
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.error("API error response:", errText);
+        throw new Error(`API error: ${response.status} - ${errText}`);
+      }
+
+      const data = await response.json();
+      console.log("✅ API Success Response:", data);
+      
+      toast({
+        title: "Success",
+        description: "Mock interview initialized"
+      });
+
+      navigate(`/interview-session?gender=${gender}&difficulty=${difficulty}`, {
+        state: { 
+          mockInterviewId: data.mockInterviewId,
+          firstQuestionId: data.firstQuestionId,
+          firstQuestionText: data.firstQuestionText
+        }
+      });
+    } catch (error) {
+      console.error("Failed to start mock interview:", error);
+      toast({
+        title: "Error",
+        description: "Failed to initialize mock interview. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -56,7 +146,7 @@ const InterviewSetup = () => {
               {/* Role Selection */}
               <div>
                 <Label className="text-lg font-semibold mb-3 block">{t("interview.targetRole")}</Label>
-                <Select>
+                <Select value={targetRole} onValueChange={setTargetRole}>
                   <SelectTrigger>
                     <SelectValue placeholder={t("interview.selectRole")} />
                   </SelectTrigger>
@@ -66,6 +156,7 @@ const InterviewSetup = () => {
                     <SelectItem value="fullstack">Full Stack Developer</SelectItem>
                     <SelectItem value="designer">UI/UX Designer</SelectItem>
                     <SelectItem value="pm">Product Manager</SelectItem>
+                    <SelectItem value="developer">Developer</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -150,9 +241,14 @@ const InterviewSetup = () => {
             className="w-full gradient-primary shadow-glow" 
             size="lg"
             onClick={handleStartInterview}
+            disabled={isLoading}
           >
-            <Play className="h-5 w-5 mr-2" />
-            {t("interview.startInterview")}
+            {isLoading ? (
+              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+            ) : (
+              <Play className="h-5 w-5 mr-2" />
+            )}
+            {isLoading ? t("Loading...") || "Loading..." : t("interview.startInterview")}
           </Button>
         </div>
       </div>

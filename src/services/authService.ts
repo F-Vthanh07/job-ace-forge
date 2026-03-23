@@ -579,14 +579,25 @@ class AuthService {
    */
   async createInviteCode(inviteCode: string): Promise<CreateInviteCodeResponse> {
     try {
-      console.log("📤 Creating invite code:", inviteCode);
+      const token = this.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: "Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.",
+        };
+      }
+
+      const normalizedInviteCode = inviteCode.trim();
+      console.log("📤 Creating invite code:", normalizedInviteCode);
       
       const response = await fetch(`${API_BASE_URL}/Auth/create-invite-code`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ inviteCode }),
+        // Backend expects a raw JSON string in the request body for this endpoint.
+        body: JSON.stringify(normalizedInviteCode),
       });
 
       const responseText = await response.text();
@@ -613,7 +624,7 @@ class AuthService {
       return {
         success: true,
         message: String(result.message) || "Tạo mã mời thành công.",
-        data: (result.data as CreateInviteCodeResponse["data"]) || { inviteCode },
+        data: (result.data as CreateInviteCodeResponse["data"]) || { inviteCode: normalizedInviteCode },
       };
     } catch (error) {
       console.error("Create invite code error:", error);
