@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useState, useEffect, useRef } from "react";
 import { Video, Mic, MicOff, VideoOff, StopCircle, Maximize, Minimize, ZoomIn, ZoomOut, Subtitles } from "lucide-react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import interviewerMale from "@/assets/interviewer-male.png";
 import interviewerFemale from "@/assets/interviewer-female.png";
@@ -11,6 +11,10 @@ import { interviewQuestions } from "@/data/interviewQuestions";
 
 const InterviewSession = () => {
   const [searchParams] = useSearchParams();
+  const location = useLocation();
+  // Extract data from API response passed via navigate state
+  const { mockInterviewId, firstQuestionId, firstQuestionText } = location.state || {};
+  
   const gender = searchParams.get("gender") || "male";
   const difficulty = searchParams.get("difficulty") || "medium";
   const [isMicOn, setIsMicOn] = useState(true);
@@ -23,6 +27,7 @@ const InterviewSession = () => {
   const [aiZoom, setAIZoom] = useState(1);
   const [showSubtitles, setShowSubtitles] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState("");
+  const [transcript, setTranscript] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const userVideoContainerRef = useRef<HTMLDivElement>(null);
@@ -64,8 +69,62 @@ const InterviewSession = () => {
     };
   }, [toast]);
 
+  // Web Speech API Integration
+  useEffect(() => {
+    if (!isMicOn || !isSessionActive) return;
+
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      console.warn("Speech recognition is not supported in this browser.");
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    recognition.lang = 'vi-VN'; // Supporting Vietnamese initially
+
+    recognition.onresult = (event: any) => {
+      let currentTranscript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        currentTranscript += event.results[i][0].transcript;
+      }
+      setTranscript(currentTranscript);
+      console.log("🎤 User Speech -> Text:", currentTranscript);
+    };
+
+    recognition.onerror = (event: any) => {
+      console.error("Speech recognition error:", event.error);
+    };
+
+    try {
+      recognition.start();
+      console.log("Speech recognition started.");
+    } catch (e) {
+      console.error("Speech recognition start error:", e);
+    }
+
+    return () => {
+      try {
+        recognition.stop();
+        console.log("Speech recognition stopped.");
+      } catch (e) {
+        console.error("Speech recognition stop error:", e);
+      }
+    };
+  }, [isMicOn, isSessionActive]);
+
   // Questions management
   useEffect(() => {
+    // If we have API data, display the first question provided by the backend
+    if (firstQuestionText && (60 - timeRemaining) < 15) {
+      // Keep displaying the first question for the first 15 seconds
+      setCurrentQuestion(firstQuestionText);
+      return;
+    }
+
+    // Default static fallback behavior
     const questions = interviewQuestions[difficulty as keyof typeof interviewQuestions] || interviewQuestions.medium;
     const elapsedTime = 60 - timeRemaining;
     
@@ -77,7 +136,7 @@ const InterviewSession = () => {
     if (currentQ) {
       setCurrentQuestion(currentQ.question);
     }
-  }, [timeRemaining, difficulty]);
+  }, [timeRemaining, difficulty, firstQuestionText]);
 
   // Countdown timer
   useEffect(() => {

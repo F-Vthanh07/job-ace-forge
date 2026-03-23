@@ -21,6 +21,8 @@ import CVManager from "./pages/CVManager";
 import CVBuilder from "./pages/CVBuilder";
 import CVFeedback from "./pages/CVFeedback";
 import ComingSoon from "./pages/ComingSoon";
+import InterviewSetup from "./pages/InterviewSetup";
+import InterviewSession from "./pages/InterviewSession";
 import InterviewReport from "./pages/InterviewReport";
 import SkillProgress from "./pages/SkillProgress";
 import Resources from "./pages/Resources";
@@ -79,8 +81,8 @@ const App = () => (
               <Route path="/cv-manager" element={<CVManager />} />
               <Route path="/cv-builder" element={<CVBuilder />} />
               <Route path="/cv-feedback/:id" element={<CVFeedback />} />
-              <Route path="/interview-setup" element={<ComingSoon />} />
-              <Route path="/interview-session" element={<ComingSoon />} />
+              <Route path="/interview-setup" element={<InterviewSetup />} />
+              <Route path="/interview-session" element={<InterviewSession />} />
               <Route path="/interview-report/:id" element={<InterviewReport />} />
               <Route path="/skill-progress" element={<SkillProgress />} />
               <Route path="/resources" element={<Resources />} />
