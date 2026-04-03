@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Sparkles, Loader2, AlertCircle } from "lucide-react";
+import { Sparkles, Loader2, AlertCircle, Eye, EyeOff, Check } from "lucide-react";
 import { authService } from "@/services/authService";
 import { notifyWarning, notifyError, notifySuccess } from "@/utils/notification";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,7 @@ interface SignupData {
   dateOfBirth: string;
   gender: string;
   password: string;
+  confirmPassword: string;
 }
 
 // Country codes for phone numbers
@@ -44,9 +45,12 @@ const Signup = () => {
     dateOfBirth: "",
     gender: "",
     password: "",
+    confirmPassword: "",
   });
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState<Partial<Record<keyof SignupData, string>>>({});
+  const [errors, setErrors] = useState<Partial<Record<keyof SignupData | "confirmPassword", string>>>({});
 
   // Separate date fields
   const [birthDay, setBirthDay] = useState("");
@@ -252,6 +256,16 @@ const Signup = () => {
     return null;
   };
 
+  const validateConfirmPassword = (password: string, confirmPassword: string): string | null => {
+    if (!confirmPassword || !confirmPassword.trim()) {
+      return "Confirm password is required";
+    }
+    if (password !== confirmPassword) {
+      return "Passwords do not match";
+    }
+    return null;
+  };
+
   const validateGender = (gender: string): string | null => {
     if (!gender) {
       return "Gender is required";
@@ -292,6 +306,9 @@ const Signup = () => {
 
       const passwordError = validatePassword(formData.password);
       if (passwordError) newErrors.password = passwordError;
+
+      const confirmPasswordError = validateConfirmPassword(formData.password, formData.confirmPassword);
+      if (confirmPasswordError) (newErrors as any).confirmPassword = confirmPasswordError;
 
       // If there are errors, show them
       if (Object.keys(newErrors).length > 0) {
@@ -503,24 +520,82 @@ const Signup = () => {
 
           <div>
             <Label htmlFor="password">Password *</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="••••••••"
-              className={cn("mt-1", errors.password && "border-destructive")}
-              value={formData.password}
-              onChange={handleInputChange}
-              disabled={loading}
-            />
+            <div className="relative mt-1">
+              <Input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className={cn("pr-10", errors.password && "border-destructive")}
+                value={formData.password}
+                onChange={handleInputChange}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+            </div>
             {errors.password && (
               <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
                 <AlertCircle className="h-3 w-3" />
                 <span>{errors.password}</span>
               </div>
             )}
-            <p className="text-xs text-muted-foreground mt-1">
-              At least 6 characters with letters and numbers
-            </p>
+            <div className="mt-2 space-y-1">
+              <div className={cn("flex items-center gap-2 text-xs", formData.password.length >= 6 ? "text-green-600 dark:text-green-400" : "text-muted-foreground")}>
+                <Check className={cn("h-3 w-3", formData.password.length >= 6 ? "opacity-100" : "opacity-30")} />
+                <span>At least 6 characters</span>
+              </div>
+              <div className={cn("flex items-center gap-2 text-xs", /[A-Za-z]/.test(formData.password) ? "text-green-600 dark:text-green-400" : "text-muted-foreground")}>
+                <Check className={cn("h-3 w-3", /[A-Za-z]/.test(formData.password) ? "opacity-100" : "opacity-30")} />
+                <span>Contains letters</span>
+              </div>
+              <div className={cn("flex items-center gap-2 text-xs", /[0-9]/.test(formData.password) ? "text-green-600 dark:text-green-400" : "text-muted-foreground")}>
+                <Check className={cn("h-3 w-3", /[0-9]/.test(formData.password) ? "opacity-100" : "opacity-30")} />
+                <span>Contains numbers</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <Label htmlFor="confirmPassword">Confirm Password *</Label>
+            <div className="relative mt-1">
+              <Input
+                id="confirmPassword"
+                type={showConfirmPassword ? "text" : "password"}
+                placeholder="••••••••"
+                className={cn("pr-10", (errors as any).confirmPassword && "border-destructive")}
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                disabled={loading}
+              />
+              <button
+                type="button"
+                className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={loading}
+              >
+                {showConfirmPassword ? (
+                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                ) : (
+                  <Eye className="h-4 w-4 text-muted-foreground" />
+                )}
+              </button>
+            </div>
+            {(errors as any).confirmPassword && (
+              <div className="flex items-center gap-1 mt-1 text-xs text-destructive">
+                <AlertCircle className="h-3 w-3" />
+                <span>{(errors as any).confirmPassword}</span>
+              </div>
+            )}
           </div>
 
           {/* Turnstile Widget */}
