@@ -113,21 +113,21 @@ const AdminReports = () => {
     if (loading || !dashboardData) return "...";
     const growth = dashboardData.growthPercentage;
     const arrow = growth >= 0 ? '↑' : '↓';
-    return `${arrow} ${Math.abs(growth)}% from last month`;
+    return `${arrow} ${Math.abs(Math.round(growth))}% from last month`;
   };
 
   const getGrowthRateText = () => {
     if (loading || !dashboardData) return "...";
     const growth = dashboardData.growthPercentage;
     const arrow = growth >= 0 ? '↑' : '↓';
-    return `${arrow} ${Math.abs(growth)}% growth rate`;
+    return `${arrow} ${Math.abs(Math.round(growth))}% growth rate`;
   };
 
   const getGrowthPercentageText = () => {
     if (loading || !dashboardData) return "...";
     const growth = dashboardData.growthPercentage;
     const sign = growth >= 0 ? '+' : '';
-    return `${sign}${growth.toFixed(1)}%`;
+    return `${sign}${Math.round(growth)}%`;
   };
 
   const isPositiveGrowth = () => {

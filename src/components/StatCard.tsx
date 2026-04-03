@@ -25,7 +25,7 @@ export const StatCard = ({ title, value, subtitle, icon: Icon, trend }: StatCard
           {trend && (
             <div className="flex items-center gap-1 mt-2">
               <span className={trend.isPositive ? "text-success" : "text-destructive"}>
-                {trend.isPositive ? "↑" : "↓"} {Math.abs(trend.value)}%
+                {trend.isPositive ? "↑" : "↓"} {Math.abs(Math.round(trend.value))}%
               </span>
               <span className="text-xs text-muted-foreground">vs last month</span>
             </div>
