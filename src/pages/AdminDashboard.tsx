@@ -60,7 +60,13 @@ const AdminDashboard = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/overview');
+        const token = localStorage.getItem("authToken");
+        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/overview', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
         const result = await response.json();
         
         if (result.success) {
@@ -78,7 +84,13 @@ const AdminDashboard = () => {
 
     const fetchSubscriptionPlans = async () => {
       try {
-        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/subscription-sales');
+        const token = localStorage.getItem("authToken");
+        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/subscription-sales', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
         const result = await response.json();
         
         if (result.success) {
@@ -96,7 +108,13 @@ const AdminDashboard = () => {
 
     const fetchUserStatistics = async () => {
       try {
-        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/user-statistics');
+        const token = localStorage.getItem("authToken");
+        const response = await fetch('https://aijobmatch.onrender.com/api/AdminDashboard/user-statistics', {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          }
+        });
         const result = await response.json();
         
         if (result.success) {
