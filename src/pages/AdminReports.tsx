@@ -62,10 +62,16 @@ const AdminReports = () => {
   useEffect(() => {
     const fetchAllData = async () => {
       try {
+        const token = localStorage.getItem("authToken");
+        const headers: HeadersInit = {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        };
+
         const [overviewRes, plansRes, userStatsRes] = await Promise.all([
-          fetch('https://aijobmatch.onrender.com/api/AdminDashboard/overview'),
-          fetch('https://aijobmatch.onrender.com/api/AdminDashboard/subscription-sales'),
-          fetch('https://aijobmatch.onrender.com/api/AdminDashboard/user-statistics')
+          fetch('https://aijobmatch.onrender.com/api/AdminDashboard/overview', { headers }),
+          fetch('https://aijobmatch.onrender.com/api/AdminDashboard/subscription-sales', { headers }),
+          fetch('https://aijobmatch.onrender.com/api/AdminDashboard/user-statistics', { headers })
         ]);
 
         const [overviewData, plansData, userStatsData] = await Promise.all([
