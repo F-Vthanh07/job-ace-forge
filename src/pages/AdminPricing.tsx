@@ -376,29 +376,13 @@ const AdminPricing = () => {
 
                   <div>
                     <Label htmlFor="plan-name">Plan Name *</Label>
-                    <Select
+                    <Input
+                      id="plan-name"
+                      placeholder="e.g. Pro, Enterprise, Starter"
                       value={formData.name}
-                      onValueChange={(value) => handleInputChange("name", value)}
-                    >
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select a plan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {formData.targetRole === "Candidate" ? (
-                          <>
-                            <SelectItem value="Free">Free</SelectItem>
-                            <SelectItem value="Plus">Plus</SelectItem>
-                            <SelectItem value="Pro">Pro</SelectItem>
-                          </>
-                        ) : (
-                          <>
-                            <SelectItem value="Starter">Starter</SelectItem>
-                            <SelectItem value="Professional">Professional</SelectItem>
-                            <SelectItem value="Enterprise">Enterprise</SelectItem>
-                          </>
-                        )}
-                      </SelectContent>
-                    </Select>
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      className="mt-1"
+                    />
                   </div>
                 </div>
 
@@ -543,29 +527,13 @@ const AdminPricing = () => {
 
                 <div>
                   <Label htmlFor="edit-plan-name">Plan Name *</Label>
-                  <Select
+                  <Input
+                    id="edit-plan-name"
+                    placeholder="e.g. Pro, Enterprise, Starter"
                     value={editFormData.name}
-                    onValueChange={(value) => handleEditInputChange("name", value)}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue placeholder="Select a plan" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {editFormData.targetRole === "Candidate" ? (
-                        <>
-                          <SelectItem value="Free">Free</SelectItem>
-                          <SelectItem value="Plus">Plus</SelectItem>
-                          <SelectItem value="Pro">Pro</SelectItem>
-                        </>
-                      ) : (
-                        <>
-                          <SelectItem value="Starter">Starter</SelectItem>
-                          <SelectItem value="Professional">Professional</SelectItem>
-                          <SelectItem value="Enterprise">Enterprise</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
+                    onChange={(e) => handleEditInputChange("name", e.target.value)}
+                    className="mt-1"
+                  />
                 </div>
               </div>
 

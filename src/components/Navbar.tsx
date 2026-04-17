@@ -28,13 +28,13 @@ export const Navbar = () => {
       const userData = authService.getUser();
       setUser(userData);
     };
-    
+
     // Load on mount
     loadUser();
-    
+
     // Listen for storage changes (login/logout from other tabs or components)
     globalThis.addEventListener('storage', loadUser);
-    
+
     return () => {
       globalThis.removeEventListener('storage', loadUser);
     };
@@ -56,12 +56,12 @@ export const Navbar = () => {
     setUser(null);
     navigate("/");
   };
-  
-  const isAuthPage = location.pathname === "/login" || 
-                      location.pathname === "/signup" || 
-                      location.pathname === "/recruiter-login" ||
-                      location.pathname === "/recruiter-signup";
-  
+
+  const isAuthPage = location.pathname === "/login" ||
+    location.pathname === "/signup" ||
+    location.pathname === "/recruiter-login" ||
+    location.pathname === "/recruiter-signup";
+
   if (isAuthPage) return null;
 
   const candidateLinks = [
@@ -85,12 +85,12 @@ export const Navbar = () => {
     { name: "Reports", path: "/admin/reports" },
   ];
 
-  const isRecruiterPath = location.pathname.includes("recruiter") || 
-                          location.pathname.includes("post-job") ||
-                          location.pathname.includes("manage-jobs") ||
-                          location.pathname.includes("business-profile") ||
-                          location.pathname.includes("candidates");
-  
+  const isRecruiterPath = location.pathname.includes("recruiter") ||
+    location.pathname.includes("post-job") ||
+    location.pathname.includes("manage-jobs") ||
+    location.pathname.includes("business-profile") ||
+    location.pathname.includes("candidates");
+
   const isAdminPath = location.pathname.includes("admin");
 
   let links = candidateLinks;
@@ -106,28 +106,27 @@ export const Navbar = () => {
         <div className="grid grid-cols-[1fr_auto_1fr] items-center h-16 gap-3">
           {/* Brand */}
           <Link to="/home" className="flex items-center gap-2 group shrink-0 col-start-1 justify-self-start">
-             <div className="gradient-primary p-2 rounded-lg shadow-glow">
-               <Sparkles className="h-5 w-5 text-primary-foreground" />
-             </div>
-             <span className="font-bold text-xl text-gradient">{t("common.appName")}</span>
-           </Link>
+            <div className="gradient-primary p-2 rounded-lg shadow-glow">
+              <Sparkles className="h-5 w-5 text-primary-foreground" />
+            </div>
+            <span className="font-bold text-xl text-gradient">{t("common.appName")}</span>
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center justify-center gap-6 col-start-2 justify-self-center">
-             {links.map((link) => (
-               <Link
-                 key={link.path}
-                 to={link.path}
-                 className={`text-sm font-medium transition-colors hover:text-primary/90 ${
-                   location.pathname === link.path
+            {links.map((link) => (
+              <Link
+                key={link.path}
+                to={link.path}
+                className={`text-sm font-medium transition-colors hover:text-primary/90 ${location.pathname === link.path
                     ? "text-primary"
                     : "text-muted-foreground"
-                 }`}
-               >
-                 {link.name}
-               </Link>
-             ))}
-           </div>
+                  }`}
+              >
+                {link.name}
+              </Link>
+            ))}
+          </div>
 
           {/* Right utilities */}
           <div className="hidden md:flex items-center justify-end gap-2 col-start-3 justify-self-end">
@@ -139,91 +138,91 @@ export const Navbar = () => {
             >
               {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
             </Button>
-              
-             <DropdownMenu>
-               <DropdownMenuTrigger asChild>
-                 <Button aria-label="Change language" variant="ghost" size="icon">
-                    <Globe className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => setLanguage("vi")}>
-                    Tiếng Việt
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setLanguage("en")}>
-                    English
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
 
-              {/* Profile hover card with logout */}
-              <HoverCard openDelay={80} closeDelay={100}>
-                <HoverCardTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src="" alt="user" />
-                      <AvatarFallback className="text-xs">
-                        {getUserInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                    <span className="hidden sm:inline">{user?.fullName || t("common.profile")}</span>
-                  </Button>
-                </HoverCardTrigger>
-                <HoverCardContent align="end" className="w-64">
-                  <div className="flex items-center gap-3">
-                    <Avatar>
-                      <AvatarImage src="" alt="user" />
-                      <AvatarFallback>{getUserInitials()}</AvatarFallback>
-                    </Avatar>
-                    <div className="text-sm">
-                      <div className="font-medium">{user?.fullName || t("common.yourAccount")}</div>
-                      <div className="text-muted-foreground">{user?.email || "user@example.com"}</div>
-                      {user?.role && (
-                        <div className="text-xs text-primary capitalize">{user.role}</div>
-                      )}
-                    </div>
-                  </div>
-                  <div className="mt-3 grid gap-2">
-                    {!isAdminPath && !isRecruiterPath && (
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to="/dashboard">{t("nav.dashboard")}</Link>
-                      </Button>
-                    )}
-                    {!isAdminPath && (
-                      <Button variant="outline" size="sm" asChild>
-                        <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>{t("common.viewProfile")}</Link>
-                      </Button>
-                    )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="justify-start text-destructive hover:text-destructive"
-                      onClick={handleLogout}
-                    >
-                      <LogOut className="h-4 w-4 mr-2" /> {t("common.logout")}
-                    </Button>
-                  </div>
-                </HoverCardContent>
-              </HoverCard>
-
-              {!isAdminPath && (
-                <Button size="sm" className="gradient-primary shadow-glow" asChild>
-                  <Link to={isRecruiterPath ? "/recruiter-premium" : "/premium"}>
-                    {t("common.upgrade")}
-                  </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button aria-label="Change language" variant="ghost" size="icon">
+                  <Globe className="h-4 w-4" />
                 </Button>
-              )}
-            </div>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent>
+                <DropdownMenuItem onClick={() => setLanguage("vi")}>
+                  Tiếng Việt
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => setLanguage("en")}>
+                  English
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
 
-           {/* Mobile Menu Button */}
-           <button
-             className="md:hidden p-2 rounded-md hover:bg-secondary col-start-3 justify-self-end"
-             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-             aria-label="Toggle menu"
-           >
-             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-           </button>
+            {/* Profile hover card with logout */}
+            <HoverCard openDelay={80} closeDelay={100}>
+              <HoverCardTrigger asChild>
+                <Button variant="ghost" size="sm" className="gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src="" alt="user" />
+                    <AvatarFallback className="text-xs">
+                      {getUserInitials()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="hidden sm:inline">{user?.fullName || t("common.profile")}</span>
+                </Button>
+              </HoverCardTrigger>
+              <HoverCardContent align="end" className="w-64">
+                <div className="flex items-center gap-3">
+                  <Avatar>
+                    <AvatarImage src="" alt="user" />
+                    <AvatarFallback>{getUserInitials()}</AvatarFallback>
+                  </Avatar>
+                  <div className="text-sm">
+                    <div className="font-medium">{user?.fullName || t("common.yourAccount")}</div>
+                    <div className="text-muted-foreground">{user?.email || "user@example.com"}</div>
+                    {user?.role && (
+                      <div className="text-xs text-primary capitalize">{user.role}</div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-3 grid gap-2">
+                  {!isAdminPath && !isRecruiterPath && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to="/dashboard">{t("nav.dashboard")}</Link>
+                    </Button>
+                  )}
+                  {!isAdminPath && (
+                    <Button variant="outline" size="sm" asChild>
+                      <Link to={isRecruiterPath ? "/business-profile" : "/profile"}>{t("common.viewProfile")}</Link>
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start text-destructive hover:text-destructive"
+                    onClick={handleLogout}
+                  >
+                    <LogOut className="h-4 w-4 mr-2" /> {t("common.logout")}
+                  </Button>
+                </div>
+              </HoverCardContent>
+            </HoverCard>
+
+            {!isAdminPath && (
+              <Button size="sm" className="gradient-primary shadow-glow" asChild>
+                <Link to={isRecruiterPath ? "/recruiter-premium" : "/premium"}>
+                  {t("common.upgrade")}
+                </Link>
+              </Button>
+            )}
           </div>
+
+          {/* Mobile Menu Button */}
+          <button
+            className="md:hidden p-2 rounded-md hover:bg-secondary col-start-3 justify-self-end"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            aria-label="Toggle menu"
+          >
+            {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+          </button>
+        </div>
 
         {/* Mobile Menu */}
         {mobileMenuOpen && (
@@ -233,11 +232,10 @@ export const Navbar = () => {
                 <Link
                   key={link.path}
                   to={link.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    location.pathname === link.path
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === link.path
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-secondary"
-                  }`}
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {link.name}
@@ -246,11 +244,10 @@ export const Navbar = () => {
               {!isAdminPath && !isRecruiterPath && (
                 <Link
                   to="/dashboard"
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    location.pathname === "/dashboard"
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === "/dashboard"
                       ? "bg-primary text-primary-foreground"
                       : "hover:bg-secondary"
-                  }`}
+                    }`}
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   {t("nav.dashboard")}

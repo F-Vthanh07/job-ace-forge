@@ -40,6 +40,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   // Generic errors
   "something went wrong": "Đã có lỗi xảy ra. Vui lòng thử lại.",
   "try again": "Đã có lỗi xảy ra. Vui lòng thử lại.",
+
+  // AI Service specific errors
+  "this model is currently experiencing high demand": "AI đang quá tải, vui lòng thử lại vào thời điểm khác.",
+  "spikes in demand are usually temporary": "AI đang quá tải, vui lòng thử lại vào thời điểm khác.",
 };
 
 // Default friendly message
@@ -96,9 +100,32 @@ export function getFriendlyErrorMessage(error: string | Error | unknown): string
     message = error.message;
   } else if (typeof error === "string") {
     message = error;
-  } else if (error && typeof error === "object" && "message" in error) {
-    message = String((error as { message: unknown }).message);
-  } else {
+  } else if (error && typeof error === "object") {
+    const errObj = error as any;
+    
+    // Specifically handle Google ServiceUnavailable (503) error
+    const isServiceUnavailable = 
+      errObj.status === 503 || 
+      (errObj.error && (errObj.error.code === 503 || errObj.error.status === "UNAVAILABLE"));
+
+    if (isServiceUnavailable) {
+      message = "this model is currently experiencing high demand";
+    }
+    // Check for nested Google/Gemini error format { error: { message: "..." } }
+    else if (errObj.error && typeof errObj.error === "object" && errObj.error.message) {
+      message = String(errObj.error.message);
+    } 
+    // Check for common error format { message: "..." }
+    else if ("message" in errObj) {
+      message = String(errObj.message);
+    }
+    // Check for success property but it's actually an error object
+    else if ("success" in errObj && errObj.success === false && errObj.message) {
+      message = String(errObj.message);
+    }
+  }
+
+  if (!message) {
     return DEFAULT_ERROR_MESSAGE;
   }
 

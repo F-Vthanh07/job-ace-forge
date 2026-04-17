@@ -12,21 +12,32 @@ const RecruiterPremium = () => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPlanId, setCurrentPlanId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchRecruiterPlans();
+    fetchRecruiterPlansAndCurrentPlan();
   }, []);
 
-  const fetchRecruiterPlans = async () => {
+  const fetchRecruiterPlansAndCurrentPlan = async () => {
     try {
       setLoading(true);
-      const response = await subscriptionService.getAllPlans();
       
-      console.log("📦 All plans from API:", response.data);
+      // Fetch both plans and user's current subscription concurrently
+      const [plansResponse, userSubResponse] = await Promise.all([
+        subscriptionService.getAllPlans(),
+        subscriptionService.getCurrentUserSubscription()
+      ]);
       
-      if (response.success && response.data) {
+      console.log("📦 All plans from API:", plansResponse.data);
+      console.log("👤 User subscription:", userSubResponse.data);
+      
+      if (userSubResponse.success && userSubResponse.data && userSubResponse.data.status === "Active") {
+        setCurrentPlanId(userSubResponse.data.planId);
+      }
+      
+      if (plansResponse.success && plansResponse.data) {
         // Filter for recruiter plans only (any plan with role "recruiter" and active status)
-        const recruiterPlans = response.data.filter(plan => {
+        const recruiterPlans = plansResponse.data.filter(plan => {
           const role = (plan.targetRole || "").trim().toLowerCase();
           const status = (plan.status || "").trim().toLowerCase();
           const isRecruiterPlan = role === "recruiter" && status === "active";
@@ -48,11 +59,11 @@ const RecruiterPremium = () => {
       } else {
         notifyError({
           title: "Error",
-          description: response.message || "Failed to fetch subscription plans"
+          description: plansResponse.message || "Failed to fetch subscription plans"
         });
       }
     } catch (error) {
-      console.error("Error fetching recruiter plans:", error);
+      console.error("Error fetching data:", error);
       notifyError({
         title: "Error",
         description: "An error occurred while fetching plans"
@@ -217,12 +228,13 @@ const RecruiterPremium = () => {
                   </ul>
 
                   <Button 
-                    className={`w-full ${isPopular ? 'gradient-primary shadow-glow' : ''}`}
-                    variant={isPopular ? 'default' : 'outline'}
+                    className={`w-full ${currentPlanId === plan.id ? 'bg-green-600 hover:bg-green-700 shadow-glow text-white' : isPopular ? 'gradient-primary shadow-glow' : ''}`}
+                    variant={currentPlanId === plan.id ? 'default' : isPopular ? 'default' : 'outline'}
                     size="lg"
                     onClick={() => handleSelectPlan(plan)}
+                    disabled={currentPlanId === plan.id}
                   >
-                    Chọn gói này
+                    {currentPlanId === plan.id ? "Current Plan" : "Chọn gói này"}
                   </Button>
                 </Card>
               );
