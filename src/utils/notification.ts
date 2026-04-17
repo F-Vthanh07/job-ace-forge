@@ -79,7 +79,7 @@ export function notifyError(error: unknown, customTitle?: string, action?: Notif
   const friendlyMessage = typeof error === 'string' ? error : getFriendlyErrorMessage(error);
 
   notification.error({
-    message: customTitle || "Có lỗi xảy ra",
+    message: customTitle !== undefined ? customTitle : "Có lỗi xảy ra",
     description: friendlyMessage,
     duration: 6,
     icon: React.createElement(CloseCircleOutlined, { 

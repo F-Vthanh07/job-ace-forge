@@ -67,11 +67,33 @@ class ApplicationService {
           message: "Application submitted successfully",
         };
       } else {
-        const errorData = await response.json().catch(() => null);
-        console.error("❌ Failed to create application:", response.status, errorData);
+        const errorText = await response.text().catch(() => "");
+        let errorData = null;
+        try {
+          if (errorText) {
+            errorData = JSON.parse(errorText);
+          }
+        } catch (e) {
+          // If it's not valid JSON, errorData remains null
+        }
+        
+        console.error("❌ Failed to create application:", response.status, errorText || errorData);
+
+        // Handle Google AI 503 Overloaded error embedded in a 400/500 response
+        if (
+          errorText.includes("ServiceUnavailable") || 
+          errorText.includes("currently experiencing high demand") ||
+          (errorData?.error?.status === "UNAVAILABLE")
+        ) {
+          return {
+            success: false,
+            message: "Hệ thống AI đang quá tải, vui lòng thử lại vào thời điểm khác."
+          };
+        }
+
         return {
           success: false,
-          message: errorData?.message || `Failed to submit application: ${response.status}`,
+          message: errorData?.message || errorData?.error?.message || `Failed to submit application: ${response.status}`,
         };
       }
     } catch (error) {

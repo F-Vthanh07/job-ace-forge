@@ -544,7 +544,11 @@ const CVBuilder = () => {
         });
       } else {
         console.error("❌ AI Review failed with message:", response.message);
-        notifyError(response.message || "Failed to get AI review");
+        if (response.message === "Hệ thống AI đang quá tải, vui lòng thử lại vào thời điểm khác.") {
+          notifyError(response.message, "");
+        } else {
+          notifyError(response.message || "Failed to get AI review");
+        }
       }
     } catch (error) {
       notifyError("Failed to get AI review");

@@ -104,26 +104,47 @@ class AICVSuggestService {
           message: "CV review completed successfully",
         };
       } else {
-        const errorData = await response.json().catch(() => null);
+        const errorText = await response.text().catch(() => "");
+        let errorData = null;
+        try {
+          if (errorText) {
+            errorData = JSON.parse(errorText);
+          }
+        } catch (e) {
+          // If it's not valid JSON, errorData remains null
+        }
+
         console.error("❌ Failed to get CV review:");
         console.error("   Status Code:", response.status);
-        console.error("   Error Data:", errorData);
-        console.error("   Error Message:", errorData?.message);
-        
+        console.error("   Error Text/Data:", errorText || errorData);
+
+        // Handle Google AI 503 Overloaded error embedded in a 400/500 response
+        if (
+          errorText.includes("ServiceUnavailable") ||
+          errorText.includes("currently experiencing high demand") ||
+          (errorData?.error?.status === "UNAVAILABLE")
+        ) {
+          return {
+            success: false,
+            message: "Hệ thống AI đang quá tải, vui lòng thử lại vào thời điểm khác.",
+            statusCode: response.status,
+          };
+        }
+
         // Special handling for 403 Premium expired
         if (response.status === 403) {
           console.error("🚫 403 Forbidden - Premium required or expired");
-          console.error("   Full Response:", errorData);
+          console.error("   Full Response:", errorData || errorText);
           return {
             success: false,
             message: "Premium subscription required",
             statusCode: 403,
           };
         }
-        
+
         return {
           success: false,
-          message: errorData?.message || `Failed to get CV review: ${response.status}`,
+          message: errorData?.message || errorData?.error?.message || `Failed to get CV review: ${response.status}`,
           statusCode: response.status,
         };
       }

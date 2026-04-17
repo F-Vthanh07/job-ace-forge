@@ -108,11 +108,19 @@ export const ApplyJobDialog = ({ open, onOpenChange, job, onApplicationSuccess }
 
         onOpenChange(false);
       } else {
-        toast({
-          title: "Error",
-          description: response.message || "Failed to submit application",
-          variant: "destructive",
-        });
+        if (response.message === "Hệ thống AI đang quá tải, vui lòng thử lại vào thời điểm khác.") {
+          toast({
+            title: "",
+            description: response.message,
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: response.message || "Failed to submit application",
+            variant: "destructive",
+          });
+        }
       }
     } catch (error) {
       console.error("Error submitting application:", error);
