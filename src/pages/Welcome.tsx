@@ -205,10 +205,12 @@ const Welcome = () => {
       id: "ai-interview",
       type: "feature",
       img: "/banner/Banner_3.png",
-      title: "Phỏng vấn AI thời gian thực",
-      desc: "Luyện tập với mô phỏng phỏng vấn bằng AI và nhận phản hồi chi tiết ngay lập tức.",
+      title: language === "vi" ? "Phỏng vấn AI (Sắp ra mắt)" : "AI Mock Interview (Coming Soon)",
+      desc: language === "vi" 
+        ? "Tính năng phỏng vấn thử với AI đang được hoàn thiện. Hãy quay lại sau nhé!" 
+        : "We're working on the AI mock interview feature. Stay tuned!",
       to: "/interview-setup",
-      cta: "Luyện tập ngay",
+      cta: language === "vi" ? "Xem chi tiết" : "View Details",
     },
   ];
   const count = slides.length;

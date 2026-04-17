@@ -81,9 +81,9 @@ const App = () => (
               <Route path="/cv-manager" element={<CVManager />} />
               <Route path="/cv-builder" element={<CVBuilder />} />
               <Route path="/cv-feedback/:id" element={<CVFeedback />} />
-              <Route path="/interview-setup" element={<InterviewSetup />} />
-              <Route path="/interview-session" element={<InterviewSession />} />
-              <Route path="/interview-report/:id" element={<InterviewReport />} />
+              <Route path="/interview-setup" element={<ComingSoon />} />
+              <Route path="/interview-session" element={<ComingSoon />} />
+              <Route path="/interview-report/:id" element={<ComingSoon />} />
               <Route path="/skill-progress" element={<SkillProgress />} />
               <Route path="/resources" element={<Resources />} />
               <Route path="/jobs" element={<Jobs />} />
