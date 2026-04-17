@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Search, TrendingUp, FileText, Brain, User, ArrowLeft, MoreVertical, CheckCircle, Calendar, XCircle, Loader2 } from "lucide-react";
+import { Search, TrendingUp, FileText, Brain, User, ArrowLeft, MoreVertical, CheckCircle, Calendar, XCircle, Loader2, Sparkles } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { applicationService, ApplicationResponse } from "@/services/applicationService";
@@ -79,6 +79,7 @@ const Candidates = () => {
   const [selectedApplication, setSelectedApplication] = useState<ApplicationResponse | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState<string | null>(null);
+  const [analyzingId, setAnalyzingId] = useState<string | null>(null);
   
   // Filter states
   const [statusFilter, setStatusFilter] = useState("all");
@@ -254,6 +255,47 @@ const Candidates = () => {
       });
     } finally {
       setUpdatingStatus(null);
+    }
+  };
+
+  const handleAIAnalyze = async (applicationId: string) => {
+    try {
+      setAnalyzingId(applicationId);
+      const response = await applicationService.analyzeAIResult(applicationId);
+      
+      if (response.success && response.data) {
+        // Update local state with new match score and analysis
+        setApplications(prevApps => 
+          prevApps.map(app => 
+            app.id === applicationId ? response.data! : app
+          )
+        );
+
+        // Update selected application if it's the one being analyzed
+        if (selectedApplication?.id === applicationId) {
+          setSelectedApplication(response.data);
+        }
+
+        toast({
+          title: "Success",
+          description: "AI analysis completed successfully. Match score updated.",
+        });
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: response.message || "Failed to analyze application",
+        });
+      }
+    } catch (error) {
+      console.error("Error analyzing application:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to analyze application",
+      });
+    } finally {
+      setAnalyzingId(null);
     }
   };
 
@@ -554,15 +596,28 @@ const Candidates = () => {
                         <TrendingUp className="h-5 w-5 text-primary" />
                         <span className="text-3xl font-bold text-primary">{app.matchScore}%</span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          className="gradient-primary gap-2" 
-                          onClick={() => handleViewDetails(app)}
-                        >
-                          <FileText className="h-4 w-4" />
-                          View Details
-                        </Button>
-                        <DropdownMenu>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline"
+                            className="gap-2 border-primary text-primary hover:bg-primary/10"
+                            onClick={() => handleAIAnalyze(app.id)}
+                            disabled={analyzingId === app.id}
+                          >
+                            {analyzingId === app.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Sparkles className="h-4 w-4" />
+                            )}
+                            Chấm điểm AI
+                          </Button>
+                          <Button 
+                            className="gradient-primary gap-2" 
+                            onClick={() => handleViewDetails(app)}
+                          >
+                            <FileText className="h-4 w-4" />
+                            View Details
+                          </Button>
+                          <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button 
                               variant="outline" 
@@ -642,6 +697,20 @@ const Candidates = () => {
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAIAnalyze(selectedApplication.id)}
+                    disabled={analyzingId === selectedApplication.id}
+                    className="gap-2 border-primary text-primary hover:bg-primary/10 shadow-sm"
+                  >
+                    {analyzingId === selectedApplication.id ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    Chấm điểm AI
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"

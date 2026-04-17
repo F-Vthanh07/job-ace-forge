@@ -79,11 +79,15 @@ class ApplicationService {
         
         console.error("❌ Failed to create application:", response.status, errorText || errorData);
 
-        // Handle Google AI 503 Overloaded error embedded in a 400/500 response
+        // Handle Google AI 503 Overloaded or 429 Too Many Requests errors
         if (
           errorText.includes("ServiceUnavailable") || 
           errorText.includes("currently experiencing high demand") ||
-          (errorData?.error?.status === "UNAVAILABLE")
+          errorText.includes("RESOURCE_EXHAUSTED") ||
+          errorText.includes("TooManyRequests") ||
+          (errorData?.error?.status === "UNAVAILABLE") ||
+          (errorData?.error?.status === "RESOURCE_EXHAUSTED") ||
+          response.status === 429
         ) {
           return {
             success: false,
@@ -326,12 +330,19 @@ class ApplicationService {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        console.log("✅ Application status updated successfully:", data);
+        const text = await response.text();
+        let data = null;
+        try {
+          if (text) data = JSON.parse(text);
+        } catch (e) {
+          console.log("Response was not JSON:", text);
+        }
+        
+        console.log("✅ Application status updated successfully:", data || text);
         return {
           success: true,
           data: data,
-          message: "Application status updated successfully",
+          message: (!data && typeof text === 'string' && text.length > 0) ? text : "Application status updated successfully",
         };
       } else {
         const errorData = await response.json().catch(() => null);
@@ -346,6 +357,80 @@ class ApplicationService {
       return {
         success: false,
         message: error instanceof Error ? error.message : "Failed to update application status",
+      };
+    }
+  }
+
+  /**
+   * Analyze AI result for a specific application to get match score and analysis
+   */
+  async analyzeAIResult(applicationId: string): Promise<ApiResponse<ApplicationResponse>> {
+    try {
+      const token = authService.getToken();
+      if (!token) {
+        return {
+          success: false,
+          message: "Authentication required.",
+        };
+      }
+
+      console.log(`📤 Requesting AI analysis for application: ${applicationId}`);
+
+      const response = await fetch(`${API_BASE_URL}/analyze-ai-result/${applicationId}`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("✅ AI analysis completed successfully:", data);
+        return {
+          success: true,
+          data: data,
+          message: "AI analysis completed successfully",
+        };
+      } else {
+        const errorText = await response.text().catch(() => "");
+        let errorData = null;
+        try {
+          if (errorText) {
+            errorData = JSON.parse(errorText);
+          }
+        } catch (e) {
+          // If it's not valid JSON, errorData remains null
+        }
+
+        console.error("❌ AI analysis failed:", response.status, errorText || errorData);
+
+        // Handle Google AI 503 Overloaded or 429 Too Many Requests errors
+        if (
+          errorText.includes("ServiceUnavailable") || 
+          errorText.includes("currently experiencing high demand") ||
+          errorText.includes("RESOURCE_EXHAUSTED") ||
+          errorText.includes("TooManyRequests") ||
+          (errorData?.error?.status === "UNAVAILABLE") ||
+          (errorData?.error?.status === "RESOURCE_EXHAUSTED") ||
+          response.status === 429
+        ) {
+          return {
+            success: false,
+            message: "Hệ thống AI đang quá tải, vui lòng thử lại vào thời điểm khác."
+          };
+        }
+
+        return {
+          success: false,
+          message: errorData?.message || errorData?.error?.message || `AI analysis failed: ${response.status}`,
+        };
+      }
+    } catch (error) {
+      console.error("❌ Error in AI analysis:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "AI analysis failed",
       };
     }
   }

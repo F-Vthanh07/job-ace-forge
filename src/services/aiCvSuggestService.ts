@@ -118,11 +118,15 @@ class AICVSuggestService {
         console.error("   Status Code:", response.status);
         console.error("   Error Text/Data:", errorText || errorData);
 
-        // Handle Google AI 503 Overloaded error embedded in a 400/500 response
+        // Handle Google AI 503 Overloaded or 429 Too Many Requests errors
         if (
           errorText.includes("ServiceUnavailable") ||
           errorText.includes("currently experiencing high demand") ||
-          (errorData?.error?.status === "UNAVAILABLE")
+          errorText.includes("RESOURCE_EXHAUSTED") ||
+          errorText.includes("TooManyRequests") ||
+          (errorData?.error?.status === "UNAVAILABLE") ||
+          (errorData?.error?.status === "RESOURCE_EXHAUSTED") ||
+          response.status === 429
         ) {
           return {
             success: false,
